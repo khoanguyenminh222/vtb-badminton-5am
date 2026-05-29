@@ -44,8 +44,8 @@ export default function Navigation({ user }) {
     <>
       {/* Tiêu đề điều hướng Desktop */}
       <header className="hidden sm:flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <Activity className="h-6 w-6 text-brand-primary animate-pulse" />
+        <div className="flex items-center gap-2.5">
+          <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain rounded-lg" />
           <span className="font-bold text-lg tracking-wider text-slate-800 uppercase">
             VTB Badminton
           </span>
@@ -93,8 +93,8 @@ export default function Navigation({ user }) {
 
       {/* Mobile Top Header (Brand info only) */}
       <header className="sm:hidden flex items-center justify-between px-5 py-3.5 bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <Activity className="h-5 w-5 text-brand-primary animate-pulse" />
+        <div className="flex items-center gap-2.5">
+          <img src="/logo.png" alt="Logo" className="h-6 w-6 object-contain rounded-md" />
           <span className="font-bold text-base tracking-wider text-slate-800 uppercase">
             VTB Badminton 5AM
           </span>

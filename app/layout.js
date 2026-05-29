@@ -20,6 +20,10 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "VTB Badminton 5AM",
   description: "Ghi nhận chuyên cần và thu tiền cầu lông theo ngày",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default async function RootLayout({ children }) {

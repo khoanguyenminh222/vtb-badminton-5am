@@ -49,8 +49,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo thương hiệu */}
         <div className="flex flex-col items-center mb-8">
-          <div className="p-3 bg-brand-primary/10 rounded-2xl border border-brand-primary/20 mb-3 shadow-lg shadow-brand-primary/10 animate-success">
-            <Activity className="h-8 w-8 text-brand-primary animate-pulse" />
+          <div className="p-1 bg-white rounded-3xl border border-slate-200/80 mb-3.5 shadow-xl animate-success">
+            <img src="/logo.png" alt="VTB Badminton Logo" className="h-16 w-16 object-contain rounded-2xl" />
           </div>
           <h1 className="text-2xl font-bold tracking-wider text-slate-800 uppercase">
             VTB Badminton

@@ -54,6 +54,6 @@ export const config = {
      * - _next/image (tệp tối ưu hóa hình ảnh)
      * - favicon.ico, vercel.svg, next.svg (biểu tượng/logo tĩnh)
      */
-    "/((?!_next/static|_next/image|favicon.ico|vercel.svg|next.svg).*)",
+    "/((?!_next/static|_next/image|favicon.ico|vercel.svg|next.svg|logo.png).*)",
   ],
 };
