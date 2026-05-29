@@ -18,7 +18,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 });
     }
 
-    const { date, memberIds, amount, checkOnly } = await request.json();
+    const { date, memberIds, amount, checkOnly, pendingOnly } = await request.json();
 
     // 1. Validation
     if (!date) {
@@ -29,9 +29,15 @@ export async function POST(request) {
       return NextResponse.json({ error: "Vui lòng chọn ít nhất một thành viên" }, { status: 400 });
     }
 
-    const numericAmount = Number(amount);
-    if (isNaN(numericAmount) || numericAmount < 0) {
-      return NextResponse.json({ error: "Số tiền không hợp lệ" }, { status: 400 });
+    let writeValue = "CHO_THU";
+    let numericAmount = null;
+
+    if (!pendingOnly) {
+      numericAmount = Number(amount);
+      if (isNaN(numericAmount) || numericAmount < 0) {
+        return NextResponse.json({ error: "Số tiền không hợp lệ" }, { status: 400 });
+      }
+      writeValue = numericAmount;
     }
 
     const db = await getDb();
@@ -75,7 +81,8 @@ export async function POST(request) {
         });
       }
 
-      const result = await recordPayments(sheetUrl, date, members, numericAmount);
+      const result = await recordPayments(sheetUrl, date, members, writeValue);
+      const mentionText = members.map((m) => `@${m.displayName}`).join(", ");
 
       // Save log in db for tracking
       await db.collection("payment_logs").insertOne({
@@ -83,6 +90,9 @@ export async function POST(request) {
         memberIds: members.map((m) => m._id.toString()),
         memberNames: members.map((m) => m.displayName),
         amount: numericAmount,
+        pendingOnly: !!pendingOnly,
+        writeValue,
+        mentionText,
         sheetUrl,
         sheetTitle: result.sheetTitle,
         recordedBy: session.username,
@@ -91,7 +101,11 @@ export async function POST(request) {
 
       return NextResponse.json({
         success: true,
-        message: `Đã ghi nhận thành công cho ${members.length} thành viên vào tab "${result.sheetTitle}"`,
+        pendingOnly: !!pendingOnly,
+        mentionText,
+        message: pendingOnly
+          ? `Đã điểm danh tạm cho ${members.length} thành viên vào tab "${result.sheetTitle}".`
+          : `Đã ghi nhận thành công cho ${members.length} thành viên vào tab "${result.sheetTitle}"`,
       });
     } catch (sheetError) {
       console.error("Google Sheet write error:", sheetError);

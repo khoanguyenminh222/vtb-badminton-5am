@@ -17,10 +17,13 @@ import {
 } from "lucide-react";
 
 export default function EntryPage() {
+  const ENTRY_DRAFT_KEY = "entry_form_draft_v1";
   // ========== TRẠNG THÁI FORM CHÍNH ==========
   const [date, setDate] = useState(""); // Ngày ghi nhận
   const [selectedMembers, setSelectedMembers] = useState([]); // Danh sách thành viên được chọn
   const [amount, setAmount] = useState(20000); // Số tiền mặc định 20,000đ
+  const [pendingOnly, setPendingOnly] = useState(false); // Điểm danh trước, nhập tiền sau
+  const [mentionText, setMentionText] = useState(""); // Chuỗi @Tên để copy gửi Zalo
 
   // ========== TRẠNG THÁI TÌM KIẾM & DANH SÁCH THÀNH VIÊN ==========
   const [search, setSearch] = useState(""); // Từ khóa tìm kiếm
@@ -57,18 +60,125 @@ export default function EntryPage() {
     }, 4000);
   };
 
+  const clearDraft = () => {
+    localStorage.removeItem(ENTRY_DRAFT_KEY);
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+
+    setDate(`${yyyy}-${mm}-${dd}`);
+    setSelectedMembers([]);
+    setAmount(20000);
+    setPendingOnly(false);
+    setMentionText("");
+    setSubmitMessage({ type: "", text: "" });
+    showToast("success", "Đã xóa bản nháp");
+  };
+
+  const restoreMembersFromMention = () => {
+    if (!mentionText.trim()) {
+      showToast("error", "Chưa có chuỗi mention để khôi phục");
+      return;
+    }
+
+    const names = mentionText
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => (part.startsWith("@") ? part.slice(1).trim() : part))
+      .filter(Boolean);
+
+    if (names.length === 0) {
+      showToast("error", "Không đọc được tên nào từ chuỗi mention");
+      return;
+    }
+
+    const normalized = (value) => value.trim().replace(/\s+/g, " ").toLowerCase();
+    const selectedMap = new Map(selectedMembers.map((m) => [m._id, m]));
+    let addedCount = 0;
+    const missingNames = [];
+
+    for (const name of names) {
+      const key = normalized(name);
+      const found = membersList.find((member) => normalized(member.displayName) === key);
+      if (found) {
+        if (!selectedMap.has(found._id)) {
+          selectedMap.set(found._id, found);
+          addedCount++;
+        }
+      } else {
+        missingNames.push(name);
+      }
+    }
+
+    setSelectedMembers(Array.from(selectedMap.values()));
+
+    if (missingNames.length > 0) {
+      showToast(
+        "error",
+        `Đã thêm ${addedCount} người. Không tìm thấy: ${missingNames.join(", ")}`
+      );
+      return;
+    }
+
+    showToast("success", `Đã khôi phục ${addedCount} thành viên từ mention`);
+  };
+
   // Các mức tiền nhanh (tính bằng VNĐ)
   const quickAmounts = [15000, 20000, 25000, 30000, 40000, 50000];
 
   // Đặt ngày mặc định là hôm nay (định dạng YYYY-MM-DD)
   useEffect(() => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const dd = String(today.getDate()).padStart(2, "0");
-    setDate(`${yyyy}-${mm}-${dd}`);
+    const rawDraft = localStorage.getItem(ENTRY_DRAFT_KEY);
+    let hasDraftDate = false;
+
+    if (rawDraft) {
+      try {
+        const draft = JSON.parse(rawDraft);
+        if (draft?.date) {
+          setDate(draft.date);
+          hasDraftDate = true;
+        }
+        if (Array.isArray(draft?.selectedMembers)) {
+          setSelectedMembers(draft.selectedMembers);
+        }
+        if (typeof draft?.amount === "number") {
+          setAmount(draft.amount);
+        }
+        if (typeof draft?.pendingOnly === "boolean") {
+          setPendingOnly(draft.pendingOnly);
+        }
+        if (typeof draft?.mentionText === "string") {
+          setMentionText(draft.mentionText);
+        }
+      } catch (error) {
+        console.error("Không đọc được bản nháp cục bộ:", error);
+      }
+    }
+
+    if (!hasDraftDate) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      setDate(`${yyyy}-${mm}-${dd}`);
+    }
+
     fetchMembers("");
   }, []);
+
+  useEffect(() => {
+    const draftData = {
+      date,
+      selectedMembers,
+      amount,
+      pendingOnly,
+      mentionText,
+    };
+    localStorage.setItem(ENTRY_DRAFT_KEY, JSON.stringify(draftData));
+  }, [date, selectedMembers, amount, pendingOnly, mentionText]);
 
   const fetchMembers = async (searchKeyword) => {
     setLoadingMembers(true);
@@ -151,6 +261,7 @@ export default function EntryPage() {
           date: date,
           memberIds: selectedMembers.map((m) => m._id),
           amount: amount,
+          pendingOnly: pendingOnly,
         }),
       });
 
@@ -161,6 +272,7 @@ export default function EntryPage() {
       }
 
       const successText = data.message || "Ghi nhận thành công lên Google Sheet!";
+      setMentionText(data.mentionText || "");
       setSubmitMessage({
         type: "success",
         text: successText,
@@ -189,6 +301,7 @@ export default function EntryPage() {
           date: date,
           memberIds: selectedMembers.map((m) => m._id),
           amount: amount,
+          pendingOnly: pendingOnly,
           checkOnly: true,
         }),
       });
@@ -234,6 +347,13 @@ export default function EntryPage() {
 
     if (selectedMembers.length === 0) {
       const errorText = "Vui lòng chọn ít nhất 1 thành viên";
+      setSubmitMessage({ type: "error", text: errorText });
+      showToast("error", errorText);
+      return;
+    }
+
+    if (!pendingOnly && (isNaN(Number(amount)) || Number(amount) < 0)) {
+      const errorText = "Vui lòng nhập số tiền hợp lệ";
       setSubmitMessage({ type: "error", text: errorText });
       showToast("error", errorText);
       return;
@@ -333,9 +453,9 @@ export default function EntryPage() {
             <div className="relative">
               <input
                 type="number"
-                required
+                required={!pendingOnly}
                 min={0}
-                disabled={submitting}
+                disabled={submitting || pendingOnly}
                 value={amount}
                 onChange={(e) => setAmount(Number(e.target.value))}
                 placeholder="20000"
@@ -352,7 +472,7 @@ export default function EntryPage() {
                 <button
                   key={qAmount}
                   type="button"
-                  disabled={submitting}
+                  disabled={submitting || pendingOnly}
                   onClick={() => setAmount(qAmount)}
                   className={`py-2.5 px-1 text-xs font-bold rounded-xl border transition-all cursor-pointer ${amount === qAmount
                       ? "bg-brand-primary/10 border-brand-primary text-brand-primary"
@@ -363,6 +483,16 @@ export default function EntryPage() {
                 </button>
               ))}
             </div>
+
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <input
+                type="checkbox"
+                checked={pendingOnly}
+                disabled={submitting}
+                onChange={(e) => setPendingOnly(e.target.checked)}
+              />
+              Chưa biết số tiền, chỉ điểm danh trước
+            </label>
           </div>
 
           {/* Tóm tắt lựa chọn và gửi */}
@@ -405,9 +535,56 @@ export default function EntryPage() {
                   Đang đồng bộ Google Sheet...
                 </>
               ) : (
-                `Đồng bộ ${selectedMembers.length} người - ${formatVnd(amount)}`
+                pendingOnly
+                  ? `Điểm danh ${selectedMembers.length} người (chưa nhập tiền)`
+                  : `Đồng bộ ${selectedMembers.length} người - ${formatVnd(amount)}`
               )}
             </button>
+
+            {(mentionText || selectedMembers.length > 0) && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                <p className="text-xs font-bold text-slate-700">
+                  Chuỗi mention (có thể dán từ ngoài vào)
+                </p>
+                <textarea
+                  value={mentionText}
+                  onChange={(e) => setMentionText(e.target.value)}
+                  placeholder="@Người 1, @Người 2"
+                  rows={3}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-250 bg-white text-slate-700 outline-none"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(mentionText);
+                        showToast("success", "Đã copy chuỗi mention");
+                      } catch {
+                        showToast("error", "Không copy được. Vui lòng copy thủ công.");
+                      }
+                    }}
+                    className="px-3 py-2 text-xs font-bold rounded-lg border border-slate-250 bg-white hover:bg-slate-100"
+                  >
+                    Copy mention
+                  </button>
+                  <button
+                    type="button"
+                    onClick={restoreMembersFromMention}
+                    className="px-3 py-2 text-xs font-bold rounded-lg border border-emerald-250 text-emerald-700 bg-white hover:bg-emerald-50"
+                  >
+                    Khôi phục từ mention
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearDraft}
+                    className="px-3 py-2 text-xs font-bold rounded-lg border border-red-250 text-red-700 bg-white hover:bg-red-50"
+                  >
+                    Xóa bản nháp
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </form>
 
