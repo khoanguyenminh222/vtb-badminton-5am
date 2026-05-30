@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Activity, Lock, User, AlertCircle, Loader2 } from "lucide-react";
+import { Activity, Lock, User, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   // Tên đăng nhập
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   // Đang xử lý đăng nhập
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   // Xử lý submit form đăng nhập
@@ -45,24 +46,40 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 bg-linear-to-br from-slate-50 to-emerald-50/20">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background image layer */}
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: "url('https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?w=1400&q=80&fit=crop')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
+      {/* Overlay gradient */}
+      <div className="absolute inset-0 z-0 bg-linear-to-br from-slate-900/75 via-emerald-900/60 to-slate-900/80" />
+
+      {/* Decorative blobs */}
+      <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl z-0" />
+      <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-teal-500/10 blur-3xl z-0" />
+
+      <div className="w-full max-w-md relative z-10">
         {/* Logo thương hiệu */}
         <div className="flex flex-col items-center mb-8">
           <div className="p-1 bg-white rounded-3xl border border-slate-200/80 mb-3.5 shadow-xl animate-success">
             <img src="/logo.png" alt="VTB Badminton Logo" className="h-16 w-16 object-contain rounded-2xl" />
           </div>
-          <h1 className="text-2xl font-bold tracking-wider text-slate-800 uppercase">
+          <h1 className="text-2xl font-bold tracking-wider text-white uppercase drop-shadow">
             VTB Badminton
           </h1>
-          <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest font-bold">
+          <p className="text-xs text-emerald-200 mt-1 uppercase tracking-widest font-bold">
             Hệ thống quản lý chuyên cần 5AM
           </p>
         </div>
 
         {/* Login form card */}
-        <div className="glass-card rounded-2xl p-6 sm:p-8">
-          <h2 className="text-xl font-bold text-slate-800 mb-6 text-center">
+        <div className="rounded-2xl p-6 sm:p-8 bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+          <h2 className="text-xl font-bold text-white mb-6 text-center">
             Đăng nhập quản trị
           </h2>
 
@@ -75,7 +92,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
                 Tên đăng nhập
               </label>
               <div className="relative">
@@ -95,7 +112,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
                 Mật khẩu
               </label>
               <div className="relative">
@@ -103,14 +120,22 @@ export default function LoginPage() {
                   <Lock className="h-4 w-4" />
                 </span>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   disabled={loading}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Nhập mật khẩu..."
-                  className="w-full pl-10 pr-4 py-3 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-slate-800 placeholder-slate-400 outline-none transition-all disabled:opacity-50 text-base font-medium"
+                  className="w-full pl-10 pr-11 py-3 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-slate-800 placeholder-slate-400 outline-none transition-all disabled:opacity-50 text-base font-medium"
                 />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
@@ -132,7 +157,7 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-8 text-center">
-          <p className="text-xs text-slate-500 font-medium">
+          <p className="text-xs text-white/50 font-medium">
             © {new Date().getFullYear()} VTB Badminton. All rights reserved.
           </p>
         </div>
