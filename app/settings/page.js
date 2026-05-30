@@ -8,6 +8,11 @@ export default function SettingsPage() {
   const [sheetUrl, setSheetUrl] = useState("");
   // Email Service Account
   const [serviceAccountEmail, setServiceAccountEmail] = useState("");
+  const [sheetMeta, setSheetMeta] = useState({
+    tabTitle: "",
+    updatedBy: "",
+    updatedAt: "",
+  });
   // Đang tải cấu hình
   const [loading, setLoading] = useState(true);
   // Đang lưu cấu hình
@@ -29,18 +34,19 @@ export default function SettingsPage() {
     confirm: false,
   });
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
   // Tải cấu hình Google Sheet URL từ server
-  const fetchSettings = async () => {
+  async function fetchSettings() {
     try {
       const res = await fetch("/api/settings/sheet");
       const data = await res.json();
       if (res.ok) {
         setSheetUrl(data.sheetUrl || "");
         setServiceAccountEmail(data.serviceAccountEmail || "");
+        setSheetMeta({
+          tabTitle: data.tabTitle || "",
+          updatedBy: data.updatedBy || "",
+          updatedAt: data.updatedAt || "",
+        });
       } else {
         throw new Error(data.error || "Không thể tải cấu hình");
       }
@@ -49,7 +55,19 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  const formatDateTime = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleString("vi-VN");
   };
+
+  useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    fetchSettings();
+  }, []);
 
   // Xử lý lưu cấu hình
   const handleSave = async (e) => {
@@ -71,6 +89,13 @@ export default function SettingsPage() {
         throw new Error(data.error || "Không thể lưu cấu hình");
       }
 
+      setSheetUrl(data.sheetUrl || sheetUrl);
+      setSheetMeta((prev) => ({
+        ...prev,
+        tabTitle: data.tabTitle || prev.tabTitle,
+        updatedBy: data.updatedBy || prev.updatedBy,
+        updatedAt: data.updatedAt || prev.updatedAt,
+      }));
       setMessage({ type: "success", text: "Đã lưu cấu hình Google Sheet thành công!" });
     } catch (err) {
       setMessage({ type: "error", text: err.message });
@@ -200,6 +225,21 @@ export default function SettingsPage() {
               />
               <p className="text-slate-500 text-xs mt-2 leading-relaxed font-medium">
                 * Mẹo: Khi chuyển sang tháng mới, hãy mở tab tháng mới trên Google Sheet, sao chép URL trên trình duyệt và dán vào đây để hệ thống tự động nhận diện tab ghi tiền mới.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 text-xs sm:text-sm text-slate-700 space-y-1.5">
+              <p className="font-bold text-slate-800">Thông tin nhận diện sheet hiện hành</p>
+              <p>
+                Tên tab đang dùng: <span className="font-semibold">{sheetMeta.tabTitle || "-"}</span>
+              </p>
+              <p>
+                Người cập nhật gần nhất:{" "}
+                <span className="font-semibold">{sheetMeta.updatedBy || "-"}</span>
+              </p>
+              <p>
+                Thời điểm cập nhật:{" "}
+                <span className="font-semibold">{formatDateTime(sheetMeta.updatedAt)}</span>
               </p>
             </div>
 

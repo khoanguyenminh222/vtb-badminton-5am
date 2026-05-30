@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { parseSheetUrl } from "@/lib/sheets";
+import { parseSheetUrl, getSheetsClient, getSheetMeta } from "@/lib/sheets";
 import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
 
@@ -19,9 +19,25 @@ export async function GET() {
 
     const db = await getDb();
     const setting = await db.collection("settings").findOne({ key: "sheet_url_current" });
+    const sheetUrl = setting ? setting.value : "";
+    const parsed = parseSheetUrl(sheetUrl);
+    let tabTitle = "";
+
+    if (sheetUrl && parsed?.spreadsheetId) {
+      try {
+        const sheetsClient = getSheetsClient();
+        const meta = await getSheetMeta(sheetsClient, parsed.spreadsheetId, parsed.gid);
+        tabTitle = meta?.title || "";
+      } catch (sheetMetaError) {
+        console.error("GET sheet meta error:", sheetMetaError);
+      }
+    }
 
     return NextResponse.json({
-      sheetUrl: setting ? setting.value : "",
+      sheetUrl,
+      tabTitle,
+      updatedBy: setting?.updatedBy || "",
+      updatedAt: setting?.updatedAt ? new Date(setting.updatedAt).toISOString() : "",
       serviceAccountEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "",
     });
   } catch (error) {
@@ -52,13 +68,24 @@ export async function PUT(request) {
     }
 
     const db = await getDb();
+    const updatedAt = new Date();
+    let tabTitle = "";
+
+    try {
+      const sheetsClient = getSheetsClient();
+      const meta = await getSheetMeta(sheetsClient, parsed.spreadsheetId, parsed.gid);
+      tabTitle = meta?.title || "";
+    } catch (sheetMetaError) {
+      console.error("PUT sheet meta error:", sheetMetaError);
+    }
+
     await db.collection("settings").updateOne(
       { key: "sheet_url_current" },
       {
         $set: {
           value: sheetUrl,
           updatedBy: session.username,
-          updatedAt: new Date(),
+          updatedAt,
         },
       },
       { upsert: true }
@@ -67,6 +94,9 @@ export async function PUT(request) {
     return NextResponse.json({
       success: true,
       sheetUrl,
+      tabTitle,
+      updatedBy: session.username,
+      updatedAt: updatedAt.toISOString(),
     });
   } catch (error) {
     console.error("PUT setting API error:", error);

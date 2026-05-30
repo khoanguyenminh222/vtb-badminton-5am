@@ -597,7 +597,7 @@ export default function EntryPage() {
         {/* Bên phải: Chọn thành viên & tạo thành viên mới */}
         <div className="md:col-span-2 space-y-6 order-2">
           {/* Thẻ chọn nhiều */}
-          <div className="glass-card rounded-2xl p-5 space-y-4 flex flex-col h-[340px] sm:h-[390px]">
+          <div className="glass-card rounded-2xl p-5 space-y-4 flex flex-col h-85 sm:h-97.5">
             <div className="flex items-center justify-between text-slate-700 font-bold text-sm w-full">
               <div className="flex items-center gap-2">
                 <Users className="h-4.5 w-4.5 text-brand-primary" />

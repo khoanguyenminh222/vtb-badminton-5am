@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ClipboardList, Settings, Users, LogOut, Activity } from "lucide-react";
+import { ClipboardList, Settings, Users, LogOut, History } from "lucide-react";
 import { useState } from "react";
 
 export default function Navigation({ user }) {
@@ -10,7 +10,6 @@ export default function Navigation({ user }) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
 
-  // Nếu không có người dùng, không hiển thị menu điều hướng (ví dụ: trên trang đăng nhập)
   if (!user) return null;
 
   const handleLogout = async () => {
@@ -23,35 +22,29 @@ export default function Navigation({ user }) {
         router.push("/login");
       }
     } catch (error) {
-      console.error("Lỗi đăng xuất:", error);
+      console.error("Logout error:", error);
     } finally {
       setLoggingOut(false);
     }
   };
 
-  // Định nghĩa các mục menu điều hướng
   const navItems = [
     { href: "/", label: "Nhập liệu", icon: ClipboardList },
+    { href: "/logs", label: "Lịch sử", icon: History },
     { href: "/settings", label: "Cấu hình", icon: Settings },
   ];
 
-  // Chỉ thêm menu Admin nếu người dùng là super_admin
   if (user.role === "super_admin") {
     navItems.push({ href: "/admin", label: "Admin", icon: Users });
   }
 
   return (
     <>
-      {/* Tiêu đề điều hướng Desktop */}
       <header className="hidden sm:flex items-center justify-between px-6 py-4 bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
         <div className="flex items-center gap-2.5">
           <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain rounded-lg" />
-          <span className="font-bold text-lg tracking-wider text-slate-800 uppercase">
-            VTB Badminton
-          </span>
-          <span className="text-xs bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200 font-semibold">
-            5AM
-          </span>
+          <span className="font-bold text-lg tracking-wider text-slate-800 uppercase">VTB Badminton</span>
+          <span className="text-xs bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200 font-semibold">5AM</span>
         </div>
 
         <nav className="flex items-center gap-4">
@@ -91,24 +84,21 @@ export default function Navigation({ user }) {
         </div>
       </header>
 
-      {/* Mobile Top Header (Brand info only) */}
       <header className="sm:hidden flex items-center justify-between px-5 py-3.5 bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
         <div className="flex items-center gap-2.5">
           <img src="/logo.png" alt="Logo" className="h-6 w-6 object-contain rounded-md" />
-          <span className="font-bold text-base tracking-wider text-slate-800 uppercase">
-            VTB Badminton 5AM
-          </span>
+          <span className="font-bold text-base tracking-wider text-slate-800 uppercase">VTB Badminton 5AM</span>
         </div>
         <button
           onClick={handleLogout}
           disabled={loggingOut}
           className="p-2 text-slate-550 hover:text-red-650 hover:bg-red-50 border border-transparent hover:border-red-100 rounded-lg transition-all cursor-pointer"
+          title="Đăng xuất"
         >
           <LogOut className="h-4.5 w-4.5" />
         </button>
       </header>
 
-      {/* Mobile Bottom Tab Bar */}
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 pb-safe shadow-lg shadow-slate-100">
         <div className="flex items-center justify-around h-16">
           {navItems.map((item) => {
