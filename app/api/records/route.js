@@ -38,7 +38,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "duplicateMode không hợp lệ" }, { status: 400 });
     }
 
-    let writeValue = "CHO_THU";
+    let writeValue = "THAM GIA";
     let numericAmount = null;
 
     if (!pendingOnly) {

@@ -23,7 +23,7 @@ export default function LogsPage() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const formatCurrency = (value) => {
-    if (typeof value !== "number") return "CHO_THU";
+    if (typeof value !== "number") return "THAM GIA";
     return new Intl.NumberFormat("vi-VN").format(value) + "d";
   };
 
@@ -405,7 +405,7 @@ export default function LogsPage() {
                   Thành viên: <span className="font-semibold">{(log.memberNames || []).join(", ") || "-"}</span>
                 </p>
                 <p className="mt-1 text-slate-650">
-                  Giá trị ghi: <span className="font-semibold">{log.pendingOnly ? "CHO_THU (điểm danh tạm)" : formatCurrency(log.amount)}</span>
+                  Giá trị ghi: <span className="font-semibold">{log.pendingOnly ? "THAM GIA" : formatCurrency(log.amount)}</span>
                   {log.sheetTitle ? <span className="text-slate-500"> • Tab: {log.sheetTitle}</span> : null}
                 </p>
                 {/* {log.duplicateMode !== "none" && (

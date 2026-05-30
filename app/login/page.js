@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Activity, Lock, User, AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { Activity, Lock, User, AlertCircle, Loader2, Eye, EyeOff, Download } from "lucide-react";
 
 export default function LoginPage() {
   // Tên đăng nhập
@@ -14,7 +14,28 @@ export default function LoginPage() {
   // Đang xử lý đăng nhập
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // Kiểm tra có phải đang dùng WebView không
+  const [isWebView, setIsWebView] = useState(false);
   const router = useRouter();
+
+  // Kiểm tra nếu đang chạy trong WebView
+  useEffect(() => {
+    const checkIfWebView = () => {
+      // Kiểm tra nếu app đã set biến isWebView
+      if (typeof window !== "undefined" && window.isWebView) {
+        setIsWebView(true);
+        return;
+      }
+      
+      // Kiểm tra user-agent có chứa "WebView"
+      const userAgent = navigator.userAgent;
+      if (userAgent.includes("WebView") || userAgent.includes("wv")) {
+        setIsWebView(true);
+      }
+    };
+
+    checkIfWebView();
+  }, []);
 
   // Xử lý submit form đăng nhập
   const handleSubmit = async (e) => {
@@ -154,6 +175,30 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-6">
+            <div className="flex-1 h-px bg-white/10" />
+            <span className="text-xs text-white/50 font-medium uppercase tracking-wider">Hoặc</span>
+            <div className="flex-1 h-px bg-white/10" />
+          </div>
+
+          {/* APK Download Button - Chỉ hiện khi không dùng WebView */}
+          {!isWebView && (
+            <>
+              <a
+                href="/api/download/apk"
+                className="w-full py-3.5 px-4 bg-linear-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold text-base rounded-xl transition-all cursor-pointer shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 flex items-center justify-center gap-2 group"
+              >
+                <Download className="h-5 w-5 group-hover:animate-bounce" />
+                Tải ứng dụng Android
+              </a>
+
+              <p className="text-xs text-white/40 text-center mt-3 font-medium">
+                Tải phiên bản ứng dụng di động VTB Badminton (APK)
+              </p>
+            </>
+          )}
         </div>
 
         <div className="mt-8 text-center">
