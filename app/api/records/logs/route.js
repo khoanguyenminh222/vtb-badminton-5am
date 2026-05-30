@@ -94,6 +94,7 @@ export async function GET(request) {
         sheetTitle: log.sheetTitle || "",
         duplicateMode: log.duplicateMode || "none",
         skippedMembers: Array.isArray(log.skippedMembers) ? log.skippedMembers : [],
+        overwrittenMembers: Array.isArray(log.overwrittenMembers) ? log.overwrittenMembers : [],
         createdAt: log.createdAt ? new Date(log.createdAt).toISOString() : null,
       })),
     });

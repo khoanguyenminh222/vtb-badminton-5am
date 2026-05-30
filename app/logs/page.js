@@ -331,11 +331,10 @@ export default function LogsPage() {
                     nextPageSize: pageSize,
                   })
                 }
-                className={`px-3 py-1.5 text-xs rounded-lg border transition-all ${
-                  item === page
-                    ? "bg-brand-primary text-white border-brand-primary"
-                    : "border-slate-250 bg-slate-50 text-slate-700"
-                }`}
+                className={`px-3 py-1.5 text-xs rounded-lg border transition-all ${item === page
+                  ? "bg-brand-primary text-white border-brand-primary"
+                  : "border-slate-250 bg-slate-50 text-slate-700"
+                  }`}
               >
                 {item}
               </button>
@@ -386,7 +385,15 @@ export default function LogsPage() {
         ) : (
           <div className="space-y-2">
             {logs.map((log) => (
-              <div key={log._id} className="rounded-xl border border-slate-200 bg-white/70 p-3.5 text-sm text-slate-700">
+              <div
+                key={log._id}
+                className={`rounded-xl border p-3.5 text-sm text-slate-700 ${log.duplicateMode === "overwrite"
+                  ? "border-red-200 bg-red-50/30"
+                  : log.duplicateMode === "skip"
+                    ? "border-amber-200 bg-amber-50/30"
+                    : "border-slate-200 bg-white/70"
+                  }`}
+              >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="font-bold text-slate-800">{log.recordedBy}</span>
                   <span className="text-slate-500">•</span>
@@ -400,13 +407,27 @@ export default function LogsPage() {
                 <p className="mt-1 text-slate-650">
                   Giá trị ghi: <span className="font-semibold">{log.pendingOnly ? "CHO_THU (điểm danh tạm)" : formatCurrency(log.amount)}</span>
                   {log.sheetTitle ? <span className="text-slate-500"> • Tab: {log.sheetTitle}</span> : null}
-                  {log.duplicateMode !== "none" ? (
-                    <span className="text-slate-500"> • Chống trùng: {log.duplicateMode === "overwrite" ? "Ghi đè" : "Bỏ qua"}</span>
-                  ) : null}
                 </p>
+                {/* {log.duplicateMode !== "none" && (
+                  <div className="mt-2">
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-bold ${log.duplicateMode === "overwrite"
+                        ? "border-red-250 bg-red-50 text-red-700"
+                        : "border-amber-250 bg-amber-50 text-amber-700"
+                        }`}
+                    >
+                      Chống trùng: {log.duplicateMode === "overwrite" ? "Ghi đè" : "Bỏ qua"}
+                    </span>
+                  </div>
+                )} */}
                 {Array.isArray(log.skippedMembers) && log.skippedMembers.length > 0 && (
                   <p className="mt-1 text-amber-700 text-xs font-semibold">
                     Đã bỏ qua trùng: {log.skippedMembers.join(", ")}
+                  </p>
+                )}
+                {Array.isArray(log.overwrittenMembers) && log.overwrittenMembers.length > 0 && (
+                  <p className="mt-1 text-red-700 text-xs font-semibold">
+                    Đã ghi đè: {log.overwrittenMembers.join(", ")}
                   </p>
                 )}
               </div>

@@ -41,6 +41,7 @@ export default function EntryPage() {
   const [submitMessage, setSubmitMessage] = useState({ type: "", text: "" }); // Thông báo gửi dữ liệu
   const [sheetTabTitle, setSheetTabTitle] = useState("");
   const [loadingSheetTab, setLoadingSheetTab] = useState(true);
+  const [showMentionTools, setShowMentionTools] = useState(false);
 
   // ========== TRẠNG THÁI TOAST THÔNG BÁO NỔI ==========
   const [toast, setToast] = useState({ show: false, type: "", text: "" });
@@ -81,6 +82,7 @@ export default function EntryPage() {
     setAmount(20000);
     setPendingOnly(false);
     setMentionText("");
+    setShowMentionTools(false);
     setSubmitMessage({ type: "", text: "" });
     showToast("success", "Đã xóa bản nháp");
   };
@@ -311,6 +313,9 @@ export default function EntryPage() {
 
       const successText = data.message || "Ghi nhận thành công lên Google Sheet!";
       setMentionText(data.mentionText || "");
+      if (data.mentionText) {
+        setShowMentionTools(true);
+      }
       setSubmitMessage({
         type: "success",
         text: successText,
@@ -537,46 +542,58 @@ export default function EntryPage() {
             </button>
 
             {(mentionText || selectedMembers.length > 0) && (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
-                <p className="text-xs font-bold text-slate-700">
-                  Chuỗi mention (có thể dán từ ngoài vào)
-                </p>
-                <textarea
-                  value={mentionText}
-                  onChange={(e) => setMentionText(e.target.value)}
-                  placeholder="@Người 1, @Người 2"
-                  rows={3}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-250 bg-white text-slate-700 outline-none"
-                />
-                <div className="flex items-center gap-2">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] sm:text-xs font-bold text-slate-700">
+                    Chuỗi mention (có thể dán từ ngoài vào)
+                  </p>
                   <button
                     type="button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(mentionText);
-                        showToast("success", "Đã copy chuỗi mention");
-                      } catch {
-                        showToast("error", "Không copy được. Vui lòng copy thủ công.");
-                      }
-                    }}
-                    className="px-3 py-2 text-xs font-bold rounded-lg border border-slate-250 bg-white hover:bg-slate-100"
+                    onClick={() => setShowMentionTools((prev) => !prev)}
+                    className="sm:hidden px-2.5 py-1 text-[11px] font-bold rounded-md border border-slate-250 bg-white text-slate-650"
                   >
-                    Copy mention
+                    {showMentionTools ? "Ẩn" : "Mở"}
                   </button>
-                  <button
-                    type="button"
-                    onClick={restoreMembersFromMention}
-                    className="px-3 py-2 text-xs font-bold rounded-lg border border-emerald-250 text-emerald-700 bg-white hover:bg-emerald-50"
-                  >
-                    Khôi phục từ mention
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearDraft}
-                    className="px-3 py-2 text-xs font-bold rounded-lg border border-red-250 text-red-700 bg-white hover:bg-red-50"
-                  >
-                    Xóa bản nháp
-                  </button>
+                </div>
+
+                <div className={`${showMentionTools ? "block" : "hidden"} sm:block space-y-2`}>
+                  <textarea
+                    value={mentionText}
+                    onChange={(e) => setMentionText(e.target.value)}
+                    placeholder="@Người 1, @Người 2"
+                    rows={2}
+                    className="w-full px-3 py-2 text-xs rounded-lg border border-slate-250 bg-white text-slate-700 outline-none"
+                  />
+                  <div className="grid grid-cols-1 sm:flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(mentionText);
+                          showToast("success", "Đã copy chuỗi mention");
+                        } catch {
+                          showToast("error", "Không copy được. Vui lòng copy thủ công.");
+                        }
+                      }}
+                      className="w-full sm:w-auto px-3 py-2 text-[11px] sm:text-xs font-bold rounded-lg border border-slate-250 bg-white hover:bg-slate-100"
+                    >
+                      Copy mention
+                    </button>
+                    <button
+                      type="button"
+                      onClick={restoreMembersFromMention}
+                      className="w-full sm:w-auto px-3 py-2 text-[11px] sm:text-xs font-bold rounded-lg border border-emerald-250 text-emerald-700 bg-white hover:bg-emerald-50"
+                    >
+                      Khôi phục từ mention
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearDraft}
+                      className="w-full sm:w-auto px-3 py-2 text-[11px] sm:text-xs font-bold rounded-lg border border-red-250 text-red-700 bg-white hover:bg-red-50"
+                    >
+                      Xóa bản nháp
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -618,8 +635,21 @@ export default function EntryPage() {
               value={search}
               onChange={handleSearchChange}
               placeholder="Tìm kiếm tên..."
-              className="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-slate-800 placeholder-slate-400 outline-none transition-all text-sm font-medium"
+              className="w-full pl-9 pr-9 py-2.5 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-slate-800 placeholder-slate-400 outline-none transition-all text-sm font-medium"
             />
+            {search.trim() && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  fetchMembers("");
+                }}
+                className="absolute inset-y-0 right-2 flex items-center justify-center text-slate-350 hover:text-slate-600 w-6"
+                aria-label="Xóa nội dung tìm kiếm"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
 
           {/* Danh sách thành viên cuộn */}
@@ -834,7 +864,7 @@ export default function EntryPage() {
               }}
               className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-red-600/20"
             >
-              Ghi đè có chủ đích
+              Ghi đè
             </button>
           </div>
         </div>

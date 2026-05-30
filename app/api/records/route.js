@@ -117,6 +117,11 @@ export async function POST(request) {
           ? (checkResult.conflicts || []).map((item) => item.memberName)
           : [];
 
+      const overwrittenMembers =
+        duplicateMode === "overwrite"
+          ? (checkResult.conflicts || []).map((item) => item.memberName)
+          : [];
+
       let sheetTitle = "";
       if (membersToWrite.length > 0) {
         const result = await recordPayments(sheetUrl, date, membersToWrite, writeValue);
@@ -139,6 +144,7 @@ export async function POST(request) {
         recordedBy: session.username,
         duplicateMode: duplicateMode || "none",
         skippedMembers,
+        overwrittenMembers,
         conflictCount: (checkResult.conflicts || []).length,
         createdAt: new Date(),
       });
