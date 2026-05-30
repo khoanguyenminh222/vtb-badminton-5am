@@ -3,6 +3,7 @@ import "./globals.css";
 import Navigation from "@/components/Navigation";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
+import { Analytics } from "@vercel/analytics/next"
 
 // Tải font Geist Sans
 const geistSans = Geist({
@@ -43,6 +44,7 @@ export default async function RootLayout({ children }) {
         <Navigation user={user} />
         {/* pb-20 trên mobile để xóa thanh tab dưới, không có padding thêm trên desktop */}
         <main className="flex-1 flex flex-col pb-20 sm:pb-0">{children}</main>
+        <Analytics />
       </body>
     </html>
   );
