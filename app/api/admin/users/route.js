@@ -47,7 +47,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Chỉ super_admin mới có quyền truy cập" }, { status: 403 });
     }
 
-    const { username, password, permissions } = await request.json();
+    const { username, password, permissions, role } = await request.json();
 
     if (!username || !password) {
       return NextResponse.json({ error: "Vui lòng nhập đầy đủ thông tin" }, { status: 400 });
@@ -61,6 +61,8 @@ export async function POST(request) {
     if (password.length < 6) {
       return NextResponse.json({ error: "Mật khẩu phải chứa ít nhất 6 ký tự" }, { status: 400 });
     }
+
+    const nextRole = role === "super_admin" ? "super_admin" : "admin";
 
     const db = await getDb();
 
@@ -77,9 +79,9 @@ export async function POST(request) {
     const newUser = {
       username: cleanUsername,
       passwordHash,
-      role: "admin",
+      role: nextRole,
       status: "active",
-      permissions: normalizePermissions(permissions, "admin"),
+      permissions: normalizePermissions(permissions, nextRole),
       createdAt: new Date(),
       updatedAt: new Date(),
     };

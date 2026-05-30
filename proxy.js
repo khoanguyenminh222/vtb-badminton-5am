@@ -6,6 +6,7 @@ export async function proxy(request) {
   const token = request.cookies.get("session_token")?.value;
   const decoded = await verifyToken(token);
   const { pathname } = request.nextUrl;
+  const method = request.method;
 
   if (pathname === "/login") {
     if (decoded) {
@@ -29,6 +30,10 @@ export async function proxy(request) {
     ...decoded,
     permissions: normalizePermissions(decoded.permissions, decoded.role),
   };
+
+  if (pathname === "/api/settings/sheet" && method === "GET") {
+    return NextResponse.next();
+  }
 
   const permissionByPrefix = [
     { prefixes: ["/admin", "/api/admin"], key: "adminUsers" },

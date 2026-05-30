@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, UserPlus, Shield, Lock, Unlock, Key, AlertCircle, CheckCircle2, Loader2, RefreshCw, X, Eye, EyeOff } from "lucide-react";
+import { Users, UserPlus, Shield, Lock, Unlock, Key, AlertCircle, CheckCircle2, Loader2, RefreshCw, X, Eye, EyeOff, Crown, Menu } from "lucide-react";
 
 const PERMISSION_OPTIONS = [
   { key: "records", label: "Nhập liệu", icon: "📝" },
@@ -288,6 +288,170 @@ function PermissionsModal({ user, onClose, onSuccess }) {
   );
 }
 
+function RoleModal({ user, onClose, onSuccess }) {
+  const [role, setRole] = useState(user.role || "admin");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    setError("");
+
+    try {
+      const res = await fetch(`/api/admin/users/${user._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update-role", role }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Không thể cập nhật role");
+      onSuccess(data.message || "Cập nhật role thành công");
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <ModalOverlay onClose={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md"
+        style={{ animation: "modalIn 0.2s cubic-bezier(0.34,1.56,0.64,1)" }}
+      >
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-violet-50 rounded-xl border border-violet-200">
+              <Crown className="h-5 w-5 text-violet-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-base">Chỉnh role</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Tài khoản: <span className="font-semibold text-slate-700">{user.username}</span></p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all cursor-pointer"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm font-medium">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+              Role
+            </label>
+            <select
+              value={role}
+              disabled={saving}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-slate-800 outline-none transition-all disabled:opacity-50 text-sm font-medium"
+            >
+              <option value="admin">admin</option>
+              <option value="super_admin">super_admin</option>
+            </select>
+            <p className="text-xs text-slate-500 mt-2 font-medium">
+              Khi nâng cấp thành super_admin, tài khoản này sẽ có toàn quyền hệ thống.
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-sm font-bold rounded-xl transition-all cursor-pointer"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 py-2.5 bg-brand-primary hover:bg-brand-primary-hover disabled:bg-slate-100 disabled:text-slate-400 text-white font-bold text-sm rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-brand-primary/20"
+            >
+              {saving ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Đang lưu...</>
+              ) : (
+                "Lưu role"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </ModalOverlay>
+  );
+}
+
+function ActionMenuModal({ user, onClose, onResetPassword, onEditPermissions, onEditRole, onToggleStatus }) {
+  return (
+    <ModalOverlay onClose={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm"
+        style={{ animation: "modalIn 0.2s cubic-bezier(0.34,1.56,0.64,1)" }}
+      >
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm">Thao tác nhanh</h3>
+            <p className="text-xs text-slate-500 mt-0.5">{user.username}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-4 py-4 space-y-2.5">
+          <button
+            type="button"
+            onClick={() => { onClose(); onResetPassword(); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold"
+          >
+            <Key className="h-4 w-4 text-amber-600" /> Đặt lại mật khẩu
+          </button>
+          <button
+            type="button"
+            onClick={() => { onClose(); onEditPermissions(); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold"
+          >
+            <Shield className="h-4 w-4 text-brand-primary" /> Phân quyền
+          </button>
+          <button
+            type="button"
+            onClick={() => { onClose(); onEditRole(); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold"
+          >
+            <Crown className="h-4 w-4 text-violet-700" /> Chỉnh role
+          </button>
+          <button
+            type="button"
+            onClick={() => { onClose(); onToggleStatus(); }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-semibold"
+          >
+            {user.status === "active" ? (
+              <Lock className="h-4 w-4 text-red-600" />
+            ) : (
+              <Unlock className="h-4 w-4 text-emerald-700" />
+            )}
+            {user.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+          </button>
+        </div>
+      </div>
+    </ModalOverlay>
+  );
+}
+
 // ===================== MAIN PAGE =====================
 
 export default function AdminPage() {
@@ -301,6 +465,7 @@ export default function AdminPage() {
   // Form thêm user
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState("admin");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [addingUser, setAddingUser] = useState(false);
 
@@ -311,6 +476,8 @@ export default function AdminPage() {
   // Modal states
   const [resetPasswordUser, setResetPasswordUser] = useState(null);
   const [editPermissionsUser, setEditPermissionsUser] = useState(null);
+  const [editRoleUser, setEditRoleUser] = useState(null);
+  const [actionMenuUser, setActionMenuUser] = useState(null);
 
   useEffect(() => {
     fetchUsers();
@@ -357,13 +524,19 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: newUsername, password: newPassword, permissions: DEFAULT_ADMIN_PERMISSIONS }),
+        body: JSON.stringify({
+          username: newUsername,
+          password: newPassword,
+          role: newRole,
+          permissions: DEFAULT_ADMIN_PERMISSIONS,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Lỗi tạo tài khoản");
-      showToast("success", `Đã tạo tài khoản admin "${newUsername}" thành công!`);
+      showToast("success", `Đã tạo tài khoản ${newRole === "super_admin" ? "super_admin" : "admin"} "${newUsername}" thành công!`);
       setNewUsername("");
       setNewPassword("");
+      setNewRole("admin");
       fetchUsers();
     } catch (err) {
       showToast("error", err.message);
@@ -429,6 +602,23 @@ export default function AdminPage() {
           onSuccess={handleModalSuccess}
         />
       )}
+      {editRoleUser && (
+        <RoleModal
+          user={editRoleUser}
+          onClose={() => setEditRoleUser(null)}
+          onSuccess={handleModalSuccess}
+        />
+      )}
+      {actionMenuUser && (
+        <ActionMenuModal
+          user={actionMenuUser}
+          onClose={() => setActionMenuUser(null)}
+          onResetPassword={() => setResetPasswordUser(actionMenuUser)}
+          onEditPermissions={() => setEditPermissionsUser(actionMenuUser)}
+          onEditRole={() => setEditRoleUser(actionMenuUser)}
+          onToggleStatus={() => handleToggleStatus(actionMenuUser._id)}
+        />
+      )}
 
       <style>{`
         @keyframes modalIn {
@@ -462,7 +652,7 @@ export default function AdminPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="glass-card rounded-xl p-3.5">
             <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Tổng admin</p>
             <p className="mt-1 text-xl font-extrabold text-slate-800">{totalAdmins}</p>
@@ -500,6 +690,21 @@ export default function AdminPage() {
                   placeholder="Ví dụ: admin_nam"
                   className="w-full px-4 py-2.5 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-slate-800 placeholder-slate-400 outline-none transition-all disabled:opacity-50 text-sm font-medium"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">
+                  Vai trò
+                </label>
+                <select
+                  disabled={addingUser}
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-slate-800 outline-none transition-all disabled:opacity-50 text-sm font-medium"
+                >
+                  <option value="admin">admin</option>
+                  <option value="super_admin">super_admin</option>
+                </select>
               </div>
 
               <div>
@@ -599,60 +804,89 @@ export default function AdminPage() {
 
                           {/* Permission badges */}
                           {user.role !== "super_admin" && (
-                            <div className="mt-1.5 flex flex-wrap gap-1">
-                              {PERMISSION_OPTIONS.map((perm) => {
-                                const enabled = !!user.permissions?.[perm.key];
-                                return (
-                                  <span
-                                    key={perm.key}
-                                    className={`text-[10px] px-1.5 py-0.5 rounded-md border font-semibold ${enabled
-                                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                        : "bg-slate-50 border-slate-200 text-slate-400"
-                                      }`}
-                                  >
-                                    {perm.label}
-                                  </span>
-                                );
-                              })}
-                            </div>
+                            <>
+                              <div className="hidden sm:flex mt-1.5 flex-wrap gap-1">
+                                {PERMISSION_OPTIONS.map((perm) => {
+                                  const enabled = !!user.permissions?.[perm.key];
+                                  return (
+                                    <span
+                                      key={perm.key}
+                                      className={`text-[10px] px-1.5 py-0.5 rounded-md border font-semibold ${enabled
+                                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                          : "bg-slate-50 border-slate-200 text-slate-400"
+                                        }`}
+                                    >
+                                      {perm.label}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                              <div className="sm:hidden mt-1.5">
+                                <span className="text-[10px] px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-600 font-semibold">
+                                  Quyền: {PERMISSION_OPTIONS.filter((perm) => !!user.permissions?.[perm.key]).length}/{PERMISSION_OPTIONS.length}
+                                </span>
+                              </div>
+                            </>
                           )}
                         </div>
                       </div>
 
                       {/* Action buttons — always visible, no scroll needed */}
                       <div className="flex items-center gap-1.5 shrink-0">
-                        {/* Reset Password */}
-                        <button
-                          onClick={() => setResetPasswordUser(user)}
-                          className="p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 bg-white rounded-xl transition-all cursor-pointer shadow-2xs"
-                          title="Đặt lại mật khẩu"
-                        >
-                          <Key className="h-4 w-4" />
-                        </button>
+                        {user.role === "super_admin" ? (
+                          <span className="text-[10px] px-2 py-1 rounded-md border border-slate-200 text-slate-500 font-bold bg-slate-50 leading-tight text-center">
+                            <span className="sm:hidden">super_admin</span>
+                            <span className="hidden sm:inline">Không tương tác super_admin</span>
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => setActionMenuUser(user)}
+                              className="sm:hidden p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 bg-white rounded-xl transition-all cursor-pointer shadow-2xs"
+                              title="Mở menu thao tác"
+                            >
+                              <Menu className="h-4 w-4" />
+                            </button>
 
-                        {/* Edit Permissions */}
-                        {user.role !== "super_admin" && (
-                          <button
-                            onClick={() => setEditPermissionsUser(user)}
-                            className="p-2 text-slate-500 hover:text-brand-primary hover:bg-brand-primary/5 border border-slate-200 hover:border-brand-primary/30 bg-white rounded-xl transition-all cursor-pointer shadow-2xs"
-                            title="Phân quyền"
-                          >
-                            <Shield className="h-4 w-4" />
-                          </button>
-                        )}
+                            {/* Reset Password */}
+                            <button
+                              onClick={() => setResetPasswordUser(user)}
+                              className="hidden sm:inline-flex p-2 text-slate-500 hover:text-amber-600 hover:bg-amber-50 border border-slate-200 hover:border-amber-200 bg-white rounded-xl transition-all cursor-pointer shadow-2xs"
+                              title="Đặt lại mật khẩu"
+                            >
+                              <Key className="h-4 w-4" />
+                            </button>
 
-                        {/* Toggle Lock */}
-                        {user.role !== "super_admin" && (
-                          <button
-                            onClick={() => handleToggleStatus(user._id)}
-                            className={`p-2 border rounded-xl transition-all cursor-pointer shadow-2xs ${user.status === "active"
-                                ? "text-red-500 hover:text-red-700 hover:bg-red-50 border-slate-200 hover:border-red-200 bg-white"
-                                : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-slate-200 hover:border-emerald-200 bg-white"
-                              }`}
-                            title={user.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
-                          >
-                            {user.status === "active" ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-                          </button>
+                            {/* Edit Permissions */}
+                            <button
+                              onClick={() => setEditPermissionsUser(user)}
+                              className="hidden sm:inline-flex p-2 text-slate-500 hover:text-brand-primary hover:bg-brand-primary/5 border border-slate-200 hover:border-brand-primary/30 bg-white rounded-xl transition-all cursor-pointer shadow-2xs"
+                              title="Phân quyền"
+                            >
+                              <Shield className="h-4 w-4" />
+                            </button>
+
+                            {/* Edit Role */}
+                            <button
+                              onClick={() => setEditRoleUser(user)}
+                              className="hidden sm:inline-flex p-2 text-slate-500 hover:text-violet-700 hover:bg-violet-50 border border-slate-200 hover:border-violet-200 bg-white rounded-xl transition-all cursor-pointer shadow-2xs"
+                              title="Chỉnh role"
+                            >
+                              <Crown className="h-4 w-4" />
+                            </button>
+
+                            {/* Toggle Lock */}
+                            <button
+                              onClick={() => handleToggleStatus(user._id)}
+                              className={`hidden sm:inline-flex p-2 border rounded-xl transition-all cursor-pointer shadow-2xs ${user.status === "active"
+                                  ? "text-red-500 hover:text-red-700 hover:bg-red-50 border-slate-200 hover:border-red-200 bg-white"
+                                  : "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-slate-200 hover:border-emerald-200 bg-white"
+                                }`}
+                              title={user.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                            >
+                              {user.status === "active" ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
