@@ -39,6 +39,8 @@ export default function EntryPage() {
   // ========== TRẠNG THÁI GỬI DỮ LIỆU ==========
   const [submitting, setSubmitting] = useState(false); // Đang gửi dữ liệu
   const [submitMessage, setSubmitMessage] = useState({ type: "", text: "" }); // Thông báo gửi dữ liệu
+  const [sheetTabTitle, setSheetTabTitle] = useState("");
+  const [loadingSheetTab, setLoadingSheetTab] = useState(true);
 
   // ========== TRẠNG THÁI TOAST THÔNG BÁO NỔI ==========
   const [toast, setToast] = useState({ show: false, type: "", text: "" });
@@ -51,6 +53,11 @@ export default function EntryPage() {
     confirmText: "Đồng ý",
     cancelText: "Hủy bỏ",
     onConfirm: null,
+  });
+
+  const [duplicateModal, setDuplicateModal] = useState({
+    show: false,
+    conflicts: [],
   });
 
   const showToast = (type, text) => {
@@ -168,6 +175,7 @@ export default function EntryPage() {
     }
 
     fetchMembers("");
+    fetchCurrentSheetTab();
   }, []);
 
   useEffect(() => {
@@ -196,6 +204,21 @@ export default function EntryPage() {
       console.error("Lỗi lấy danh sách thành viên:", error);
     } finally {
       setLoadingMembers(false);
+    }
+  };
+
+  const fetchCurrentSheetTab = async () => {
+    setLoadingSheetTab(true);
+    try {
+      const res = await fetch("/api/settings/sheet", { cache: "no-store" });
+      const data = await res.json();
+      if (res.ok) {
+        setSheetTabTitle(data?.tabTitle || "");
+      }
+    } catch (error) {
+      console.error("Lỗi lấy tab sheet hiện tại:", error);
+    } finally {
+      setLoadingSheetTab(false);
     }
   };
 
@@ -255,7 +278,7 @@ export default function EntryPage() {
   };
 
   // Thực hiện gửi dữ liệu đồng bộ thực tế lên Google Sheet
-  const executeSync = async () => {
+  const executeSync = async (duplicateMode) => {
     setSubmitting(true);
     setSubmitMessage({ type: "", text: "" });
 
@@ -268,10 +291,19 @@ export default function EntryPage() {
           memberIds: selectedMembers.map((m) => m._id),
           amount: amount,
           pendingOnly: pendingOnly,
+          duplicateMode,
         }),
       });
 
       const data = await res.json();
+
+      if (res.status === 409 && data.code === "DUPLICATE_CONFLICT") {
+        setDuplicateModal({
+          show: true,
+          conflicts: Array.isArray(data.conflicts) ? data.conflicts : [],
+        });
+        return;
+      }
 
       if (!res.ok) {
         throw new Error(data.error || "Ghi nhận thất bại");
@@ -287,61 +319,11 @@ export default function EntryPage() {
 
       // Xóa lựa chọn khi thành công để ngăn chặn gửi lại trùng lặp
       setSelectedMembers([]);
+      setDuplicateModal({ show: false, conflicts: [] });
     } catch (err) {
       setSubmitMessage({ type: "error", text: err.message });
       showToast("error", err.message);
     } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Kiểm tra trùng dữ liệu rồi mới tiến hành đồng bộ
-  const checkDuplicatesAndSync = async () => {
-    setSubmitting(true);
-    setSubmitMessage({ type: "", text: "" });
-    try {
-      const checkRes = await fetch("/api/records", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: date,
-          memberIds: selectedMembers.map((m) => m._id),
-          amount: amount,
-          pendingOnly: pendingOnly,
-          checkOnly: true,
-        }),
-      });
-
-      const checkData = await checkRes.json();
-
-      if (!checkRes.ok) {
-        throw new Error(checkData.error || "Lỗi kiểm tra dữ liệu trùng lặp");
-      }
-
-      if (checkData.hasExistingData) {
-        setSubmitting(false); // Dừng trạng thái loading để hiển thị modal xác nhận ghi đè
-
-        const formattedDate = date.split("-").reverse().join("/");
-        const membersListStr = checkData.existingMembers.join(", ");
-
-        setConfirmModal({
-          show: true,
-          title: "⚠️ Cảnh báo trùng dữ liệu",
-          message: `Ngày ${formattedDate} đã có dữ liệu tiền thu của các thành viên: ${membersListStr}. Bạn có chắc chắn muốn GHI ĐÈ số tiền mới lên Google Sheet không?`,
-          confirmText: "Ghi đè",
-          cancelText: "Hủy bỏ",
-          onConfirm: () => {
-            setConfirmModal((prev) => ({ ...prev, show: false }));
-            executeSync();
-          },
-        });
-      } else {
-        // Không trùng -> Tiến hành đồng bộ ngay lập tức
-        await executeSync();
-      }
-    } catch (err) {
-      setSubmitMessage({ type: "error", text: err.message });
-      showToast("error", err.message);
       setSubmitting(false);
     }
   };
@@ -384,12 +366,12 @@ export default function EntryPage() {
         cancelText: "Hủy bỏ",
         onConfirm: () => {
           setConfirmModal((prev) => ({ ...prev, show: false }));
-          checkDuplicatesAndSync();
+          executeSync();
         },
       });
     } else {
-      // Đúng ngày hôm nay -> Tiến hành kiểm tra trùng và đồng bộ
-      checkDuplicatesAndSync();
+      // Đúng ngày hôm nay -> Tiến hành đồng bộ
+      executeSync();
     }
   };
 
@@ -410,6 +392,13 @@ export default function EntryPage() {
           <p className="text-xs sm:text-sm text-slate-655 mt-0.5">
             Nhập ngày, số tiền và chọn thành viên để ghi nhận lên Google Sheet
           </p>
+          {!loadingSheetTab && (
+            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-250 bg-emerald-50 text-emerald-700 text-[11px] sm:text-xs font-bold shadow-2xs">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span>Tab hiện tại:</span>
+              <span className="text-emerald-800">{sheetTabTitle || "Chưa cấu hình"}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -598,19 +587,23 @@ export default function EntryPage() {
         <div className="md:col-span-2 space-y-6 order-2">
           {/* Thẻ chọn nhiều */}
           <div className="glass-card rounded-2xl p-5 space-y-4 flex flex-col h-85 sm:h-97.5">
-            <div className="flex items-center justify-between text-slate-700 font-bold text-sm w-full">
-              <div className="flex items-center gap-2">
+            <div className="w-full rounded-xl border border-slate-200/80 bg-white/70 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-slate-700 font-bold text-sm">
                 <Users className="h-4.5 w-4.5 text-brand-primary" />
                 <span>3. Chọn Thành Viên</span>
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-bold">
-                {selectedMembers.length > 0 && (
-                  <span className="bg-brand-primary/10 text-emerald-800 px-2 py-0.5 rounded-full border border-brand-primary/20 animate-pulse">
-                    Đã chọn {selectedMembers.length}
-                  </span>
-                )}
-                <span className="bg-slate-100 text-slate-650 px-2 py-0.5 rounded-full border border-slate-200">
-                  Tổng {totalMembersCount}
+              <div className="flex items-center gap-2 text-[11px] font-bold">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full border border-slate-250 bg-slate-100 text-slate-650">
+                  Tổng: {totalMembersCount}
+                </span>
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full border transition-all ${
+                    selectedMembers.length > 0
+                      ? "bg-brand-primary/10 text-emerald-800 border-brand-primary/20"
+                      : "bg-slate-50 text-slate-500 border-slate-200"
+                  }`}
+                >
+                  Đã chọn: {selectedMembers.length}
                 </span>
               </div>
             </div>
@@ -780,6 +773,68 @@ export default function EntryPage() {
               className="px-4 py-2.5 bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-brand-primary/20"
             >
               {confirmModal.confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  {
+    duplicateModal.show && (
+      <div className="fixed inset-0 bg-slate-900/45 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-success">
+        <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full shadow-2xl p-6 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 bg-red-50 rounded-xl border border-red-200 text-red-600 shrink-0">
+              <AlertCircle className="h-6 w-6" />
+            </div>
+            <div className="space-y-1.5 flex-1">
+              <h3 className="text-base font-bold text-slate-800 leading-tight">
+                Phát hiện bản ghi trùng
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                Một số ô đã có dữ liệu ở đúng ngày và thành viên. Bạn chọn cách xử lý bên dưới.
+              </p>
+            </div>
+          </div>
+
+          <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/80 p-3 space-y-2">
+            {(duplicateModal.conflicts || []).map((item, idx) => (
+              <div key={`${item.memberId || item.memberName}-${idx}`} className="text-xs text-slate-700">
+                <span className="font-bold">{item.memberName}</span>
+                <span className="text-slate-500"> — giá trị hiện có: </span>
+                <span className="font-semibold text-red-700">{String(item.existingValue)}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-2.5 pt-1">
+            <button
+              type="button"
+              onClick={() => setDuplicateModal({ show: false, conflicts: [] })}
+              className="px-4 py-2.5 bg-slate-50 border border-slate-250 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDuplicateModal({ show: false, conflicts: [] });
+                executeSync("skip");
+              }}
+              className="px-4 py-2.5 bg-amber-50 border border-amber-250 hover:bg-amber-100 text-amber-800 text-xs font-bold rounded-xl transition-all cursor-pointer"
+            >
+              Bỏ qua bản ghi trùng
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDuplicateModal({ show: false, conflicts: [] });
+                executeSync("overwrite");
+              }}
+              className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-red-600/20"
+            >
+              Ghi đè có chủ đích
             </button>
           </div>
         </div>

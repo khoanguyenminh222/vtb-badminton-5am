@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db";
 import { createToken } from "@/lib/auth";
+import { normalizePermissions } from "@/lib/permissions";
 
 export async function POST(request) {
   try {
@@ -42,11 +43,14 @@ export async function POST(request) {
       );
     }
 
+    const permissions = normalizePermissions(user.permissions, user.role);
+
     // Create session token
     const token = await createToken({
       id: user._id.toString(),
       username: user.username,
       role: user.role,
+      permissions,
     });
 
     // Set cookie
@@ -65,6 +69,7 @@ export async function POST(request) {
         id: user._id.toString(),
         username: user.username,
         role: user.role,
+        permissions,
       },
     });
   } catch (error) {

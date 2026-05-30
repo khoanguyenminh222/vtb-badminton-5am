@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ClipboardList, Settings, Users, LogOut, History } from "lucide-react";
+import { ClipboardList, Settings, Users, LogOut, History, User } from "lucide-react";
 import { useState } from "react";
 
 export default function Navigation({ user }) {
@@ -28,15 +28,22 @@ export default function Navigation({ user }) {
     }
   };
 
-  const navItems = [
-    { href: "/", label: "Nhập liệu", icon: ClipboardList },
-    { href: "/logs", label: "Lịch sử", icon: History },
-    { href: "/settings", label: "Cấu hình", icon: Settings },
+  // Định nghĩa tất cả menu items kèm permission key tương ứng
+  // permKey = null → luôn hiển thị (không cần quyền)
+  const ALL_NAV_ITEMS = [
+    { href: "/", label: "Nhập liệu", icon: ClipboardList, permKey: "records" },
+    { href: "/logs", label: "Lịch sử", icon: History, permKey: "logs" },
+    { href: "/settings", label: "Cấu hình", icon: Settings, permKey: "settings" },
+    { href: "/admin", label: "Admin", icon: Users, permKey: "adminUsers" },
+    { href: "/profile", label: "Cá nhân", icon: User, permKey: null },
   ];
 
-  if (user.role === "super_admin") {
-    navItems.push({ href: "/admin", label: "Admin", icon: Users });
-  }
+  // super_admin thấy tất cả; admin thường chỉ thấy menu có quyền
+  const navItems = ALL_NAV_ITEMS.filter((item) => {
+    if (user.role === "super_admin") return true;
+    if (item.permKey === null) return true; // Cá nhân luôn hiện
+    return !!user.permissions?.[item.permKey];
+  });
 
   return (
     <>
@@ -55,11 +62,10 @@ export default function Navigation({ user }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-2 text-sm font-bold transition-all py-1.5 px-3.5 rounded-lg border ${
-                  isActive
+                className={`flex items-center gap-2 text-sm font-bold transition-all py-1.5 px-3.5 rounded-lg border ${isActive
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200/60"
                     : "text-slate-600 border-transparent hover:text-emerald-600 hover:bg-slate-50"
-                }`}
+                  }`}
               >
                 <Icon className="h-4 w-4" />
                 {item.label}
@@ -108,9 +114,8 @@ export default function Navigation({ user }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-all ${
-                  isActive ? "text-emerald-600" : "text-slate-500 hover:text-slate-800"
-                }`}
+                className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-all ${isActive ? "text-emerald-600" : "text-slate-500 hover:text-slate-800"
+                  }`}
               >
                 <Icon className={`h-5.5 w-5.5 transition-transform ${isActive ? "scale-110" : ""}`} />
                 <span className="text-[10px] font-bold tracking-wide">{item.label}</span>

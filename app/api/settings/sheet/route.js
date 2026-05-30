@@ -53,6 +53,13 @@ export async function PUT(request) {
       return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 });
     }
 
+    // Chỉ super_admin hoặc admin có quyền settings mới được cập nhật
+    const hasSettingsPerm =
+      session.role === "super_admin" || !!session.permissions?.settings;
+    if (!hasSettingsPerm) {
+      return NextResponse.json({ error: "Bạn không có quyền thay đổi cấu hình sheet" }, { status: 403 });
+    }
+
     const { sheetUrl } = await request.json();
 
     if (!sheetUrl) {

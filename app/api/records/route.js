@@ -18,7 +18,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 });
     }
 
-    const { date, memberIds, amount, checkOnly, pendingOnly } = await request.json();
+    const { date, memberIds, amount, checkOnly, pendingOnly, duplicateMode } = await request.json();
 
     // 1. Validation
     if (!date) {
@@ -27,6 +27,15 @@ export async function POST(request) {
 
     if (!memberIds || !Array.isArray(memberIds) || memberIds.length === 0) {
       return NextResponse.json({ error: "Vui lòng chọn ít nhất một thành viên" }, { status: 400 });
+    }
+
+    if (
+      duplicateMode !== undefined &&
+      duplicateMode !== null &&
+      duplicateMode !== "skip" &&
+      duplicateMode !== "overwrite"
+    ) {
+      return NextResponse.json({ error: "duplicateMode không hợp lệ" }, { status: 400 });
     }
 
     let writeValue = "CHO_THU";
@@ -72,40 +81,104 @@ export async function POST(request) {
 
     // 4. Sync to Google Sheets
     try {
+      const checkResult = await checkExistingPayments(sheetUrl, date, members);
+
       if (checkOnly === true) {
-        const checkResult = await checkExistingPayments(sheetUrl, date, members);
         return NextResponse.json({
           success: true,
           hasExistingData: checkResult.hasExistingData,
           existingMembers: checkResult.existingMembers,
+          conflicts: checkResult.conflicts,
         });
       }
 
-      const result = await recordPayments(sheetUrl, date, members, writeValue);
+      if (checkResult.hasExistingData && !duplicateMode) {
+        return NextResponse.json(
+          {
+            error: "Phát hiện dữ liệu trùng theo thành viên/ngày",
+            code: "DUPLICATE_CONFLICT",
+            conflicts: checkResult.conflicts,
+          },
+          { status: 409 }
+        );
+      }
+
+      const conflictMemberIdSet = new Set(
+        (checkResult.conflicts || []).map((item) => String(item.memberId || "")).filter(Boolean)
+      );
+
+      const membersToWrite =
+        duplicateMode === "skip"
+          ? members.filter((m) => !conflictMemberIdSet.has(String(m._id)))
+          : members;
+
+      const skippedMembers =
+        duplicateMode === "skip"
+          ? (checkResult.conflicts || []).map((item) => item.memberName)
+          : [];
+
+      let sheetTitle = "";
+      if (membersToWrite.length > 0) {
+        const result = await recordPayments(sheetUrl, date, membersToWrite, writeValue);
+        sheetTitle = result.sheetTitle;
+      }
+
       const mentionText = members.map((m) => `@${m.displayName}`).join(", ");
 
       // Save log in db for tracking
       await db.collection("payment_logs").insertOne({
         date,
-        memberIds: members.map((m) => m._id.toString()),
-        memberNames: members.map((m) => m.displayName),
+        memberIds: membersToWrite.map((m) => m._id.toString()),
+        memberNames: membersToWrite.map((m) => m.displayName),
         amount: numericAmount,
         pendingOnly: !!pendingOnly,
         writeValue,
         mentionText,
         sheetUrl,
-        sheetTitle: result.sheetTitle,
+        sheetTitle,
         recordedBy: session.username,
+        duplicateMode: duplicateMode || "none",
+        skippedMembers,
+        conflictCount: (checkResult.conflicts || []).length,
         createdAt: new Date(),
       });
+
+      if (duplicateMode === "overwrite" && (checkResult.conflicts || []).length > 0) {
+        await db.collection("payment_audit_logs").insertMany(
+          checkResult.conflicts.map((item) => ({
+            action: "overwrite",
+            date,
+            memberId: item.memberId,
+            memberName: item.memberName,
+            beforeValue: item.existingValue,
+            afterValue: writeValue,
+            pendingOnly: !!pendingOnly,
+            recordedBy: session.username,
+            createdAt: new Date(),
+          }))
+        );
+      }
+
+      const writtenCount = membersToWrite.length;
+      const skippedCount = skippedMembers.length;
+      const baseMessage = pendingOnly
+        ? `Đã điểm danh tạm cho ${writtenCount} thành viên${sheetTitle ? ` vào tab "${sheetTitle}"` : ""}.`
+        : `Đã ghi nhận thành công cho ${writtenCount} thành viên${sheetTitle ? ` vào tab "${sheetTitle}"` : ""}`;
+
+      const fullMessage =
+        skippedCount > 0
+          ? `${baseMessage} Bỏ qua ${skippedCount} bản ghi trùng.`
+          : baseMessage;
 
       return NextResponse.json({
         success: true,
         pendingOnly: !!pendingOnly,
+        duplicateMode: duplicateMode || "none",
+        conflicts: checkResult.conflicts || [],
+        writtenMembers: membersToWrite.map((m) => m.displayName),
+        skippedMembers,
         mentionText,
-        message: pendingOnly
-          ? `Đã điểm danh tạm cho ${members.length} thành viên vào tab "${result.sheetTitle}".`
-          : `Đã ghi nhận thành công cho ${members.length} thành viên vào tab "${result.sheetTitle}"`,
+        message: fullMessage,
       });
     } catch (sheetError) {
       console.error("Google Sheet write error:", sheetError);

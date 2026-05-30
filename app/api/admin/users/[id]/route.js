@@ -4,6 +4,7 @@ import { ObjectId } from "mongodb";
 import { getDb } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
+import { normalizePermissions } from "@/lib/permissions";
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -23,7 +24,7 @@ export async function PUT(request, { params }) {
     }
 
     const { id } = await params;
-    const { action, password, status } = await request.json();
+    const { action, password, permissions } = await request.json();
 
     const db = await getDb();
     let objId;
@@ -71,6 +72,24 @@ export async function PUT(request, { params }) {
       return NextResponse.json({
         success: true,
         message: "Đặt lại mật khẩu thành công",
+      });
+    }
+
+    if (action === "update-permissions") {
+      if (targetUser.role === "super_admin") {
+        return NextResponse.json({ error: "Không thể sửa quyền của super_admin" }, { status: 400 });
+      }
+
+      const normalizedPermissions = normalizePermissions(permissions, "admin");
+      await db.collection("users").updateOne(
+        { _id: objId },
+        { $set: { permissions: normalizedPermissions, updatedAt: new Date() } }
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: "Cập nhật phân quyền thành công",
+        permissions: normalizedPermissions,
       });
     }
 

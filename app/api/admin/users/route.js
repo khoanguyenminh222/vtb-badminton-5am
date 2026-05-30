@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db";
 import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
+import { normalizePermissions } from "@/lib/permissions";
 
 async function getSession() {
   const cookieStore = await cookies();
@@ -46,7 +47,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Chỉ super_admin mới có quyền truy cập" }, { status: 403 });
     }
 
-    const { username, password } = await request.json();
+    const { username, password, permissions } = await request.json();
 
     if (!username || !password) {
       return NextResponse.json({ error: "Vui lòng nhập đầy đủ thông tin" }, { status: 400 });
@@ -78,6 +79,7 @@ export async function POST(request) {
       passwordHash,
       role: "admin",
       status: "active",
+      permissions: normalizePermissions(permissions, "admin"),
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -91,6 +93,7 @@ export async function POST(request) {
         username: newUser.username,
         role: newUser.role,
         status: newUser.status,
+        permissions: newUser.permissions,
       },
     });
   } catch (error) {

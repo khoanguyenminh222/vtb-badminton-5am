@@ -13,9 +13,14 @@ export default function LogsPage() {
   const [error, setError] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [recordedBy, setRecordedBy] = useState("");
+  const [memberName, setMemberName] = useState("");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [meta, setMeta] = useState({ total: 0, totalPages: 1, pageSize: 20 });
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const formatCurrency = (value) => {
     if (typeof value !== "number") return "CHO_THU";
@@ -29,7 +34,18 @@ export default function LogsPage() {
     return date.toLocaleString("vi-VN");
   };
 
-  async function fetchLogs(nextPage = 1, from = dateFrom, to = dateTo, nextPageSize = pageSize) {
+  async function fetchLogs(
+    nextPage = 1,
+    {
+      nextDateFrom = dateFrom,
+      nextDateTo = dateTo,
+      nextRecordedBy = recordedBy,
+      nextMemberName = memberName,
+      nextCreatedFrom = createdFrom,
+      nextCreatedTo = createdTo,
+      nextPageSize = pageSize,
+    } = {}
+  ) {
     setLoading(true);
     setError("");
 
@@ -39,8 +55,12 @@ export default function LogsPage() {
         pageSize: String(nextPageSize),
       });
 
-      if (from) params.set("dateFrom", from);
-      if (to) params.set("dateTo", to);
+      if (nextDateFrom) params.set("dateFrom", nextDateFrom);
+      if (nextDateTo) params.set("dateTo", nextDateTo);
+      if (nextRecordedBy) params.set("recordedBy", nextRecordedBy);
+      if (nextMemberName) params.set("memberName", nextMemberName);
+      if (nextCreatedFrom) params.set("createdFrom", new Date(nextCreatedFrom).toISOString());
+      if (nextCreatedTo) params.set("createdTo", new Date(nextCreatedTo).toISOString());
 
       const res = await fetch(`/api/records/logs?${params.toString()}`);
       const data = await res.json();
@@ -72,7 +92,33 @@ export default function LogsPage() {
 
   const handleFilter = (e) => {
     e.preventDefault();
-    fetchLogs(1, dateFrom, dateTo, pageSize);
+    fetchLogs(1, {
+      nextDateFrom: dateFrom,
+      nextDateTo: dateTo,
+      nextRecordedBy: recordedBy,
+      nextMemberName: memberName,
+      nextCreatedFrom: createdFrom,
+      nextCreatedTo: createdTo,
+      nextPageSize: pageSize,
+    });
+  };
+
+  const clearFilters = () => {
+    setDateFrom("");
+    setDateTo("");
+    setRecordedBy("");
+    setMemberName("");
+    setCreatedFrom("");
+    setCreatedTo("");
+    fetchLogs(1, {
+      nextDateFrom: "",
+      nextDateTo: "",
+      nextRecordedBy: "",
+      nextMemberName: "",
+      nextCreatedFrom: "",
+      nextCreatedTo: "",
+      nextPageSize: pageSize,
+    });
   };
 
   const canPrev = page > 1;
@@ -115,9 +161,9 @@ export default function LogsPage() {
         </div>
       </div>
 
-      <form onSubmit={handleFilter} className="glass-card rounded-2xl p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <form onSubmit={handleFilter} className="glass-card rounded-2xl p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Từ ngày</label>
+          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Ngày ghi nhận từ</label>
           <input
             type="date"
             value={dateFrom}
@@ -127,7 +173,7 @@ export default function LogsPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Đến ngày</label>
+          <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Ngày ghi nhận đến</label>
           <input
             type="date"
             value={dateTo}
@@ -136,7 +182,61 @@ export default function LogsPage() {
           />
         </div>
 
-        <div className="sm:col-span-2 flex items-end gap-2">
+        <div className="sm:hidden">
+          <button
+            type="button"
+            onClick={() => setShowAdvancedFilters((prev) => !prev)}
+            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-250 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-bold transition-all"
+          >
+            {showAdvancedFilters ? "Ẩn bộ lọc nâng cao" : "Hiện bộ lọc nâng cao"}
+          </button>
+        </div>
+
+        <div className={`${showAdvancedFilters ? "grid" : "hidden"} sm:grid sm:col-span-2 grid-cols-1 sm:grid-cols-2 gap-3`}>
+          <div>
+            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Người nhập</label>
+            <input
+              type="text"
+              value={recordedBy}
+              onChange={(e) => setRecordedBy(e.target.value)}
+              placeholder="VD: admin_a"
+              className="w-full px-3 py-2.5 bg-white/70 border border-slate-200 rounded-xl text-sm outline-none focus:border-brand-primary/60"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Tên thành viên (contains)</label>
+            <input
+              type="text"
+              value={memberName}
+              onChange={(e) => setMemberName(e.target.value)}
+              placeholder="VD: nam"
+              className="w-full px-3 py-2.5 bg-white/70 border border-slate-200 rounded-xl text-sm outline-none focus:border-brand-primary/60"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Nhập thực tế từ</label>
+            <input
+              type="datetime-local"
+              value={createdFrom}
+              onChange={(e) => setCreatedFrom(e.target.value)}
+              className="w-full px-3 py-2.5 bg-white/70 border border-slate-200 rounded-xl text-sm outline-none focus:border-brand-primary/60"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Nhập thực tế đến</label>
+            <input
+              type="datetime-local"
+              value={createdTo}
+              onChange={(e) => setCreatedTo(e.target.value)}
+              className="w-full px-3 py-2.5 bg-white/70 border border-slate-200 rounded-xl text-sm outline-none focus:border-brand-primary/60"
+            />
+          </div>
+        </div>
+
+        <div className="sm:col-span-2 flex flex-wrap items-end gap-2">
           <button
             type="submit"
             disabled={loading}
@@ -149,15 +249,12 @@ export default function LogsPage() {
           <button
             type="button"
             disabled={loading}
-            onClick={() => {
-              setDateFrom("");
-              setDateTo("");
-              fetchLogs(1, "", "", pageSize);
-            }}
+            onClick={clearFilters}
             className="px-4 py-2.5 bg-slate-50 border border-slate-250 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
           >
             Xóa lọc
           </button>
+
         </div>
       </form>
 
@@ -175,7 +272,15 @@ export default function LogsPage() {
               onChange={(e) => {
                 const newPageSize = Number(e.target.value);
                 setPageSize(newPageSize);
-                fetchLogs(1, dateFrom, dateTo, newPageSize);
+                fetchLogs(1, {
+                  nextDateFrom: dateFrom,
+                  nextDateTo: dateTo,
+                  nextRecordedBy: recordedBy,
+                  nextMemberName: memberName,
+                  nextCreatedFrom: createdFrom,
+                  nextCreatedTo: createdTo,
+                  nextPageSize: newPageSize,
+                });
               }}
               className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-250 bg-white text-slate-700"
             >
@@ -192,7 +297,17 @@ export default function LogsPage() {
           <button
             type="button"
             disabled={!canPrev || loading}
-            onClick={() => fetchLogs(page - 1)}
+            onClick={() =>
+              fetchLogs(page - 1, {
+                nextDateFrom: dateFrom,
+                nextDateTo: dateTo,
+                nextRecordedBy: recordedBy,
+                nextMemberName: memberName,
+                nextCreatedFrom: createdFrom,
+                nextCreatedTo: createdTo,
+                nextPageSize: pageSize,
+              })
+            }
             className="px-3 py-1.5 text-xs rounded-lg border border-slate-250 bg-slate-50 disabled:opacity-40 inline-flex items-center gap-1"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
@@ -205,7 +320,17 @@ export default function LogsPage() {
                 key={item}
                 type="button"
                 disabled={loading}
-                onClick={() => fetchLogs(item)}
+                onClick={() =>
+                  fetchLogs(item, {
+                    nextDateFrom: dateFrom,
+                    nextDateTo: dateTo,
+                    nextRecordedBy: recordedBy,
+                    nextMemberName: memberName,
+                    nextCreatedFrom: createdFrom,
+                    nextCreatedTo: createdTo,
+                    nextPageSize: pageSize,
+                  })
+                }
                 className={`px-3 py-1.5 text-xs rounded-lg border transition-all ${
                   item === page
                     ? "bg-brand-primary text-white border-brand-primary"
@@ -224,7 +349,17 @@ export default function LogsPage() {
           <button
             type="button"
             disabled={!canNext || loading}
-            onClick={() => fetchLogs(page + 1)}
+            onClick={() =>
+              fetchLogs(page + 1, {
+                nextDateFrom: dateFrom,
+                nextDateTo: dateTo,
+                nextRecordedBy: recordedBy,
+                nextMemberName: memberName,
+                nextCreatedFrom: createdFrom,
+                nextCreatedTo: createdTo,
+                nextPageSize: pageSize,
+              })
+            }
             className="px-3 py-1.5 text-xs rounded-lg border border-slate-250 bg-slate-50 disabled:opacity-40 inline-flex items-center gap-1"
           >
             Sau
@@ -265,7 +400,15 @@ export default function LogsPage() {
                 <p className="mt-1 text-slate-650">
                   Giá trị ghi: <span className="font-semibold">{log.pendingOnly ? "CHO_THU (điểm danh tạm)" : formatCurrency(log.amount)}</span>
                   {log.sheetTitle ? <span className="text-slate-500"> • Tab: {log.sheetTitle}</span> : null}
+                  {log.duplicateMode !== "none" ? (
+                    <span className="text-slate-500"> • Chống trùng: {log.duplicateMode === "overwrite" ? "Ghi đè" : "Bỏ qua"}</span>
+                  ) : null}
                 </p>
+                {Array.isArray(log.skippedMembers) && log.skippedMembers.length > 0 && (
+                  <p className="mt-1 text-amber-700 text-xs font-semibold">
+                    Đã bỏ qua trùng: {log.skippedMembers.join(", ")}
+                  </p>
+                )}
               </div>
             ))}
           </div>
