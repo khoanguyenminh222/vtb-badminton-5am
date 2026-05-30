@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, UserPlus, Shield, Lock, Unlock, Key, AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import { Users, UserPlus, Shield, Lock, Unlock, Key, AlertCircle, CheckCircle2, Loader2, RefreshCw, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function AdminPage() {
   // Danh sách người dùng
@@ -22,6 +22,11 @@ export default function AdminPage() {
   const [resettingUserId, setResettingUserId] = useState(null);
   const [newAdminPassword, setNewAdminPassword] = useState("");
   const [submittingReset, setSubmittingReset] = useState(false);
+
+  // ========== TRẠNG THÁI TÌM KIẾM VÀ PHÂN TRANG ==========
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   useEffect(() => {
     fetchUsers();
@@ -127,6 +132,17 @@ export default function AdminPage() {
       setSubmittingReset(false);
     }
   };
+
+  // ========== LỌC VÀ PHÂN TRANG DANH SÁCH ==========
+  const filteredUsers = users.filter((user) =>
+    user.username?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const activePage = Math.min(currentPage, totalPages || 1);
+  const indexOfLastItem = activePage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
 
   if (loading) {
     return (
@@ -236,77 +252,174 @@ export default function AdminPage() {
         {/* Admin List Card */}
         <div className="md:col-span-2 space-y-4">
           <div className="glass-card rounded-2xl p-5">
-            <h2 className="text-base sm:text-lg font-bold text-slate-800 mb-4">
-              Danh sách quản trị viên ({users.length})
-            </h2>
+            {/* Header with Search and Per-page selector */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-slate-800">
+                  Danh sách quản trị viên ({filteredUsers.length})
+                </h2>
+                {users.length !== filteredUsers.length && (
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                    Đang lọc từ tổng số {users.length} tài khoản
+                  </p>
+                )}
+              </div>
 
-            <div className="space-y-4">
-              {users.map((user) => (
-                <div key={user._id} className="pt-4 first:pt-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl mt-0.5 shadow-2xs">
-                      <Shield className={`h-5 w-5 ${user.role === "super_admin" ? "text-brand-primary animate-pulse" : "text-slate-400"}`} />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-800 text-sm">{user.username}</span>
-                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full border font-bold ${user.role === "super_admin"
-                          ? "bg-brand-primary/10 border-brand-primary/25 text-emerald-700"
-                          : "bg-slate-50 border-slate-200 text-slate-600"
-                          }`}>
-                          {user.role}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 mt-1 font-semibold">
-                        Trạng thái:{" "}
-                        <span className={user.status === "active" ? "text-emerald-600 font-bold" : "text-red-650 font-bold"}>
-                          {user.status === "active" ? "Hoạt động" : "Đã khóa"}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
-                    {/* Reset Password Button */}
-                    <button
-                      onClick={() => {
-                        setResettingUserId(user._id);
-                        setNewAdminPassword("");
-                      }}
-                      className="p-2.5 text-slate-655 hover:text-emerald-700 hover:bg-slate-100 bg-slate-50 border border-slate-250 rounded-xl transition-all cursor-pointer text-xs font-bold flex items-center gap-1.5 shadow-2xs"
-                      title="Đặt lại mật khẩu"
-                    >
-                      <Key className="h-4 w-4" />
-                      <span>Đổi mật khẩu</span>
-                    </button>
-
-                    {/* Toggle Status Button (Lock/Unlock) */}
-                    {user.role !== "super_admin" && (
-                      <button
-                        onClick={() => handleToggleStatus(user._id, user.username)}
-                        className={`p-2.5 rounded-xl border transition-all cursor-pointer text-xs font-bold flex items-center gap-1.5 shadow-2xs ${user.status === "active"
-                          ? "bg-slate-50 border-slate-250 text-red-650 hover:bg-red-50 hover:border-red-200/50"
-                          : "bg-slate-50 border-slate-250 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-250/50"
-                          }`}
-                        title={user.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
-                      >
-                        {user.status === "active" ? (
-                          <>
-                            <Lock className="h-4 w-4" />
-                            <span>Khóa</span>
-                          </>
-                        ) : (
-                          <>
-                            <Unlock className="h-4 w-4" />
-                            <span>Mở khóa</span>
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-48">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm tài khoản..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className="w-full pl-8.5 pr-3 py-1.5 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 outline-none transition-all"
+                  />
                 </div>
-              ))}
+                
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-2.5 py-1.5 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white rounded-xl text-[11px] font-semibold text-slate-650 outline-none transition-all cursor-pointer"
+                  title="Số dòng hiển thị"
+                >
+                  <option value={5}>5 / trang</option>
+                  <option value={10}>10 / trang</option>
+                  <option value={20}>20 / trang</option>
+                </select>
+              </div>
             </div>
+
+            <div className="space-y-0">
+              {currentItems.length === 0 ? (
+                <div className="text-center py-10 text-slate-500 flex flex-col items-center justify-center gap-2.5">
+                  <div className="p-3 bg-slate-50 rounded-full border border-slate-100">
+                    <Search className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <span className="text-xs font-semibold">Không tìm thấy tài khoản quản trị nào phù hợp</span>
+                </div>
+              ) : (
+                currentItems.map((user, idx) => (
+                  <div 
+                    key={user._id} 
+                    className={`py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${
+                      idx > 0 ? "border-t border-slate-100" : "pt-0"
+                    } ${idx === currentItems.length - 1 ? "pb-0" : ""}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-slate-50 border border-slate-200 rounded-xl mt-0.5 shadow-2xs">
+                        <Shield className={`h-5 w-5 ${user.role === "super_admin" ? "text-brand-primary animate-pulse" : "text-slate-400"}`} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-800 text-sm">{user.username}</span>
+                          <span className={`text-[10px] px-2.5 py-0.5 rounded-full border font-bold ${user.role === "super_admin"
+                            ? "bg-brand-primary/10 border-brand-primary/25 text-emerald-700"
+                            : "bg-slate-50 border-slate-200 text-slate-600"
+                            }`}>
+                            {user.role}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1 font-semibold">
+                          Trạng thái:{" "}
+                          <span className={user.status === "active" ? "text-emerald-600 font-bold" : "text-red-650 font-bold"}>
+                            {user.status === "active" ? "Hoạt động" : "Đã khóa"}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      {/* Reset Password Button */}
+                      <button
+                        onClick={() => {
+                          setResettingUserId(user._id);
+                          setNewAdminPassword("");
+                        }}
+                        className="p-2.5 text-slate-655 hover:text-emerald-700 hover:bg-slate-100 bg-slate-50 border border-slate-250 rounded-xl transition-all cursor-pointer text-xs font-bold flex items-center gap-1.5 shadow-2xs"
+                        title="Đặt lại mật khẩu"
+                      >
+                        <Key className="h-4 w-4" />
+                        <span>Đổi mật khẩu</span>
+                      </button>
+
+                      {/* Toggle Status Button (Lock/Unlock) */}
+                      {user.role !== "super_admin" && (
+                        <button
+                          onClick={() => handleToggleStatus(user._id, user.username)}
+                          className={`p-2.5 rounded-xl border transition-all cursor-pointer text-xs font-bold flex items-center gap-1.5 shadow-2xs ${user.status === "active"
+                            ? "bg-slate-50 border-slate-250 text-red-650 hover:bg-red-50 hover:border-red-200/50"
+                            : "bg-slate-50 border-slate-250 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-250/50"
+                            }`}
+                          title={user.status === "active" ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                        >
+                          {user.status === "active" ? (
+                            <>
+                              <Lock className="h-4 w-4" />
+                              <span>Khóa</span>
+                            </>
+                          ) : (
+                            <>
+                              <Unlock className="h-4 w-4" />
+                              <span>Mở khóa</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 mt-5 pt-4">
+                <span className="text-[11px] text-slate-500 font-semibold">
+                  Hiển thị {indexOfFirstItem + 1} - {Math.min(indexOfLastItem, filteredUsers.length)} trong số {filteredUsers.length}
+                </span>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={activePage === 1}
+                    className="p-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:hover:bg-slate-50 rounded-lg text-slate-600 transition-all cursor-pointer disabled:cursor-not-allowed"
+                    title="Trang trước"
+                  >
+                    <ChevronLeft className="h-4.5 w-4.5" />
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-7 px-2.5 flex items-center justify-center text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                        activePage === page
+                          ? "bg-brand-primary text-white shadow-xs"
+                          : "bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={activePage === totalPages}
+                    className="p-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 disabled:opacity-40 disabled:hover:bg-slate-50 rounded-lg text-slate-600 transition-all cursor-pointer disabled:cursor-not-allowed"
+                    title="Trang sau"
+                  >
+                    <ChevronRight className="h-4.5 w-4.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Reset Password Modal (Inline style) */}

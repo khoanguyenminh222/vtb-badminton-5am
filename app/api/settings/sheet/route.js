@@ -22,6 +22,7 @@ export async function GET() {
 
     return NextResponse.json({
       sheetUrl: setting ? setting.value : "",
+      serviceAccountEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "",
     });
   } catch (error) {
     console.error("GET setting API error:", error);

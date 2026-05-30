@@ -29,6 +29,7 @@ export default function EntryPage() {
   const [search, setSearch] = useState(""); // Từ khóa tìm kiếm
   const [membersList, setMembersList] = useState([]); // Danh sách thành viên từ server
   const [loadingMembers, setLoadingMembers] = useState(false); // Đang tải danh sách thành viên
+  const [totalMembersCount, setTotalMembersCount] = useState(0); // Tổng số thành viên trong hệ thống
 
   // ========== TRẠNG THÁI TẠO THÀNH VIÊN MỚI ==========
   const [newMemberName, setNewMemberName] = useState(""); // Tên thành viên mới
@@ -187,6 +188,9 @@ export default function EntryPage() {
       if (res.ok) {
         const data = await res.json();
         setMembersList(data || []);
+        if (!searchKeyword.trim()) {
+          setTotalMembersCount(data ? data.length : 0);
+        }
       }
     } catch (error) {
       console.error("Lỗi lấy danh sách thành viên:", error);
@@ -238,6 +242,8 @@ export default function EntryPage() {
       setNewMemberName("");
       // Refresh danh sách thành viên
       fetchMembers(search);
+      // Cập nhật tổng thành viên
+      setTotalMembersCount((prev) => prev + 1);
       // Tự động chọn luôn thành viên mới
       toggleMember(data.member);
     } catch (err) {
@@ -314,10 +320,10 @@ export default function EntryPage() {
 
       if (checkData.hasExistingData) {
         setSubmitting(false); // Dừng trạng thái loading để hiển thị modal xác nhận ghi đè
-        
+
         const formattedDate = date.split("-").reverse().join("/");
         const membersListStr = checkData.existingMembers.join(", ");
-        
+
         setConfirmModal({
           show: true,
           title: "⚠️ Cảnh báo trùng dữ liệu",
@@ -369,7 +375,7 @@ export default function EntryPage() {
     if (date !== todayStr) {
       const formattedSelected = date.split("-").reverse().join("/");
       const formattedToday = todayStr.split("-").reverse().join("/");
-      
+
       setConfirmModal({
         show: true,
         title: "📅 Xác nhận ngày ghi nhận",
@@ -410,8 +416,8 @@ export default function EntryPage() {
       {submitMessage.text && (
         <div
           className={`flex items-start gap-2.5 border text-sm p-4 rounded-xl animate-success ${submitMessage.type === "success"
-              ? "bg-emerald-50 border-emerald-250 text-emerald-800"
-              : "bg-red-50 border-red-250 text-red-800"
+            ? "bg-emerald-50 border-emerald-250 text-emerald-800"
+            : "bg-red-50 border-red-250 text-red-800"
             }`}
         >
           {submitMessage.type === "success" ? (
@@ -475,8 +481,8 @@ export default function EntryPage() {
                   disabled={submitting || pendingOnly}
                   onClick={() => setAmount(qAmount)}
                   className={`py-2.5 px-1 text-xs font-bold rounded-xl border transition-all cursor-pointer ${amount === qAmount
-                      ? "bg-brand-primary/10 border-brand-primary text-brand-primary"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100/70 hover:text-slate-800"
+                    ? "bg-brand-primary/10 border-brand-primary text-brand-primary"
+                    : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100/70 hover:text-slate-800"
                     }`}
                 >
                   {qAmount.toLocaleString("vi-VN")}
@@ -592,178 +598,194 @@ export default function EntryPage() {
         <div className="md:col-span-2 space-y-6 order-2">
           {/* Thẻ chọn nhiều */}
           <div className="glass-card rounded-2xl p-5 space-y-4 flex flex-col h-[340px] sm:h-[390px]">
-            <div className="flex items-center gap-2 text-slate-700 font-bold text-sm">
-              <Users className="h-4.5 w-4.5 text-brand-primary" />
-              <span>3. Chọn Thành Viên</span>
+            <div className="flex items-center justify-between text-slate-700 font-bold text-sm w-full">
+              <div className="flex items-center gap-2">
+                <Users className="h-4.5 w-4.5 text-brand-primary" />
+                <span>3. Chọn Thành Viên</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] font-bold">
+                {selectedMembers.length > 0 && (
+                  <span className="bg-brand-primary/10 text-emerald-800 px-2 py-0.5 rounded-full border border-brand-primary/20 animate-pulse">
+                    Đã chọn {selectedMembers.length}
+                  </span>
+                )}
+                <span className="bg-slate-100 text-slate-650 px-2 py-0.5 rounded-full border border-slate-200">
+                  Tổng {totalMembersCount}
+                </span>
+              </div>
             </div>
 
-            {/* Ô tìm kiếm */}
-            <div className="relative">
-              <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
-                <Search className="h-4 w-4" />
-              </span>
-              <input
-                type="text"
-                value={search}
-                onChange={handleSearchChange}
-                placeholder="Tìm kiếm tên..."
-                className="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-slate-800 placeholder-slate-400 outline-none transition-all text-sm font-medium"
-              />
-            </div>
+          {/* Ô tìm kiếm */}
+          <div className="relative">
+            <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">
+              <Search className="h-4 w-4" />
+            </span>
+            <input
+              type="text"
+              value={search}
+              onChange={handleSearchChange}
+              placeholder="Tìm kiếm tên..."
+              className="w-full pl-9 pr-4 py-2.5 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-slate-800 placeholder-slate-400 outline-none transition-all text-sm font-medium"
+            />
+          </div>
 
-            {/* Danh sách thành viên cuộn */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-1">
-              {loadingMembers ? (
-                <div className="h-full flex items-center justify-center text-slate-500 text-xs gap-1.5">
-                  <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
-                  Đang tìm kiếm...
-                </div>
-              ) : membersList.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs py-8 text-center gap-1">
-                  <span>Không tìm thấy thành viên nào.</span>
-                  <span>Tạo mới ở form bên dưới!</span>
-                </div>
-              ) : (
-                membersList.map((member) => {
-                  const isSelected = selectedMembers.some((m) => m._id === member._id);
-                  return (
-                    <button
-                      key={member._id}
-                      type="button"
-                      onClick={() => toggleMember(member)}
-                      className={`w-full py-2.5 px-3 flex items-center justify-between rounded-xl transition-all text-left cursor-pointer text-sm font-medium ${isSelected
-                          ? "bg-brand-primary/5 text-emerald-800 font-bold"
-                          : "text-slate-655 hover:bg-slate-50 hover:text-slate-900"
+          {/* Danh sách thành viên cuộn */}
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 pr-1 space-y-1">
+            {loadingMembers ? (
+              <div className="h-full flex items-center justify-center text-slate-500 text-xs gap-1.5">
+                <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
+                Đang tìm kiếm...
+              </div>
+            ) : membersList.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-500 text-xs py-8 text-center gap-1">
+                <span>Không tìm thấy thành viên nào.</span>
+                <span>Tạo mới ở form bên dưới!</span>
+              </div>
+            ) : (
+              membersList.map((member) => {
+                const isSelected = selectedMembers.some((m) => m._id === member._id);
+                return (
+                  <button
+                    key={member._id}
+                    type="button"
+                    onClick={() => toggleMember(member)}
+                    className={`w-full py-2.5 px-3 flex items-center justify-between rounded-xl transition-all text-left cursor-pointer text-sm font-medium ${isSelected
+                      ? "bg-brand-primary/5 text-emerald-800 font-bold"
+                      : "text-slate-655 hover:bg-slate-50 hover:text-slate-900"
+                      }`}
+                  >
+                    <span>{member.displayName}</span>
+                    <div
+                      className={`h-5 w-5 rounded-md border flex items-center justify-center transition-all ${isSelected
+                        ? "bg-brand-primary border-brand-primary text-white"
+                        : "border-slate-300 bg-white"
                         }`}
                     >
-                      <span>{member.displayName}</span>
-                      <div
-                        className={`h-5 w-5 rounded-md border flex items-center justify-center transition-all ${isSelected
-                            ? "bg-brand-primary border-brand-primary text-white"
-                            : "border-slate-300 bg-white"
-                          }`}
-                      >
-                        {isSelected && <Check className="h-3.5 w-3.5 stroke-3" />}
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Thẻ Tạo thành viên mới nội tuyến */}
-          <div className="glass-card rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-3.5">
-              <Plus className="h-5 w-5 text-brand-primary" />
-              <h3 className="font-bold text-slate-700 text-sm">Thêm thành viên mới</h3>
-            </div>
-
-            {memberMessage.text && (
-              <div
-                className={`text-xs p-2.5 rounded-lg border mb-3 flex items-center gap-1.5 ${memberMessage.type === "success"
-                    ? "bg-emerald-50 border-emerald-250 text-emerald-800 animate-success"
-                    : "bg-red-50 border-red-250 text-red-800"
-                  }`}
-              >
-                {memberMessage.type === "success" ? (
-                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                ) : (
-                  <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-500" />
-                )}
-                <span className="font-semibold">{memberMessage.text}</span>
-              </div>
+                      {isSelected && <Check className="h-3.5 w-3.5 stroke-3" />}
+                    </div>
+                  </button>
+                );
+              })
             )}
-
-            <form onSubmit={handleAddMember} className="flex gap-2">
-              <input
-                type="text"
-                required
-                disabled={creatingMember}
-                value={newMemberName}
-                onChange={(e) => setNewMemberName(e.target.value)}
-                placeholder="Nhập tên..."
-                className="flex-1 px-3 py-2 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-slate-800 placeholder-slate-400 outline-none transition-all disabled:opacity-50 text-sm font-medium"
-              />
-              <button
-                type="submit"
-                disabled={creatingMember || !newMemberName.trim()}
-                className="px-4 py-2 bg-slate-50 border border-slate-250 hover:border-brand-primary/45 hover:text-brand-primary text-slate-700 disabled:bg-slate-100 disabled:text-slate-400 rounded-xl transition-all cursor-pointer font-bold text-sm flex items-center justify-center shrink-0"
-              >
-                {creatingMember ? <Loader2 className="h-4 w-4 animate-spin" /> : "Thêm"}
-              </button>
-            </form>
           </div>
         </div>
-      </div>
 
-      {/* Hộp thông báo Toast bay (Toast Notification) */}
-      {toast.show && (
-        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 animate-success w-full max-w-sm px-4">
-          <div
-            className={`flex items-start gap-2.5 border text-sm p-4 rounded-xl shadow-xl backdrop-blur-md ${toast.type === "success"
-                ? "bg-emerald-50/95 border-emerald-300 text-emerald-800"
-                : "bg-red-50/95 border-red-300 text-red-800"
-              }`}
-          >
-            {toast.type === "success" ? (
-              <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
-            ) : (
-              <AlertCircle className="h-5 w-5 shrink-0 text-red-500" />
-            )}
-            <div className="flex-1">
-              <p className="font-bold text-xs uppercase tracking-wider mb-0.5">
-                {toast.type === "success" ? "Thành công" : "Thông báo lỗi"}
-              </p>
-              <p className="font-semibold text-xs leading-relaxed">{toast.text}</p>
-            </div>
-            <button
-              onClick={() => setToast({ ...toast, show: false })}
-              className="text-slate-400 hover:text-slate-750 cursor-pointer"
+        {/* Thẻ Tạo thành viên mới nội tuyến */}
+        <div className="glass-card rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-3.5">
+            <Plus className="h-5 w-5 text-brand-primary" />
+            <h3 className="font-bold text-slate-700 text-sm">Thêm thành viên mới</h3>
+          </div>
+
+          {memberMessage.text && (
+            <div
+              className={`text-xs p-2.5 rounded-lg border mb-3 flex items-center gap-1.5 ${memberMessage.type === "success"
+                ? "bg-emerald-50 border-emerald-250 text-emerald-800 animate-success"
+                : "bg-red-50 border-red-250 text-red-800"
+                }`}
             >
-              <X className="h-4 w-4" />
+              {memberMessage.type === "success" ? (
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+              ) : (
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 text-red-500" />
+              )}
+              <span className="font-semibold">{memberMessage.text}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAddMember} className="flex gap-2">
+            <input
+              type="text"
+              required
+              disabled={creatingMember}
+              value={newMemberName}
+              onChange={(e) => setNewMemberName(e.target.value)}
+              placeholder="Nhập tên..."
+              className="flex-1 px-3 py-2 bg-white/70 border border-slate-200 focus:border-brand-primary/60 focus:bg-white focus:ring-2 focus:ring-brand-primary/10 rounded-xl text-slate-800 placeholder-slate-400 outline-none transition-all disabled:opacity-50 text-sm font-medium"
+            />
+            <button
+              type="submit"
+              disabled={creatingMember || !newMemberName.trim()}
+              className="px-4 py-2 bg-slate-50 border border-slate-250 hover:border-brand-primary/45 hover:text-brand-primary text-slate-700 disabled:bg-slate-100 disabled:text-slate-400 rounded-xl transition-all cursor-pointer font-bold text-sm flex items-center justify-center shrink-0"
+            >
+              {creatingMember ? <Loader2 className="h-4 w-4 animate-spin" /> : "Thêm"}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+      {/* Hộp thông báo Toast bay (Toast Notification) */ }
+  {
+    toast.show && (
+      <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 animate-success w-full max-w-sm px-4">
+        <div
+          className={`flex items-start gap-2.5 border text-sm p-4 rounded-xl shadow-xl backdrop-blur-md ${toast.type === "success"
+            ? "bg-emerald-50/95 border-emerald-300 text-emerald-800"
+            : "bg-red-50/95 border-red-300 text-red-800"
+            }`}
+        >
+          {toast.type === "success" ? (
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+          ) : (
+            <AlertCircle className="h-5 w-5 shrink-0 text-red-500" />
+          )}
+          <div className="flex-1">
+            <p className="font-bold text-xs uppercase tracking-wider mb-0.5">
+              {toast.type === "success" ? "Thành công" : "Thông báo lỗi"}
+            </p>
+            <p className="font-semibold text-xs leading-relaxed">{toast.text}</p>
+          </div>
+          <button
+            onClick={() => setToast({ ...toast, show: false })}
+            className="text-slate-400 hover:text-slate-750 cursor-pointer"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  {/* Hộp thoại xác nhận tuỳ biến (Premium Modal) */ }
+  {
+    confirmModal.show && (
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-success">
+        <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-250 text-amber-500 shrink-0">
+              <AlertCircle className="h-6 w-6" />
+            </div>
+            <div className="space-y-1.5 flex-1">
+              <h3 className="text-base font-bold text-slate-800 leading-tight">
+                {confirmModal.title}
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                {confirmModal.message}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={() => setConfirmModal((prev) => ({ ...prev, show: false }))}
+              className="px-4 py-2.5 bg-slate-50 border border-slate-250 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+            >
+              {confirmModal.cancelText}
+            </button>
+            <button
+              type="button"
+              onClick={confirmModal.onConfirm}
+              className="px-4 py-2.5 bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-brand-primary/20"
+            >
+              {confirmModal.confirmText}
             </button>
           </div>
         </div>
-      )}
-
-      {/* Hộp thoại xác nhận tuỳ biến (Premium Modal) */}
-      {confirmModal.show && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-success">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-250 text-amber-500 shrink-0">
-                <AlertCircle className="h-6 w-6" />
-              </div>
-              <div className="space-y-1.5 flex-1">
-                <h3 className="text-base font-bold text-slate-800 leading-tight">
-                  {confirmModal.title}
-                </h3>
-                <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                  {confirmModal.message}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-2">
-              <button
-                type="button"
-                onClick={() => setConfirmModal((prev) => ({ ...prev, show: false }))}
-                className="px-4 py-2.5 bg-slate-50 border border-slate-250 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
-              >
-                {confirmModal.cancelText}
-              </button>
-              <button
-                type="button"
-                onClick={confirmModal.onConfirm}
-                className="px-4 py-2.5 bg-brand-primary hover:bg-brand-primary-hover text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-brand-primary/20"
-              >
-                {confirmModal.confirmText}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      </div>
+    )
+  }
+    </div >
   );
 }

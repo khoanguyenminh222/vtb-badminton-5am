@@ -6,6 +6,8 @@ import { Settings, Save, AlertCircle, CheckCircle2, Loader2, HelpCircle, ArrowRi
 export default function SettingsPage() {
   // URL Google Sheet
   const [sheetUrl, setSheetUrl] = useState("");
+  // Email Service Account
+  const [serviceAccountEmail, setServiceAccountEmail] = useState("");
   // Đang tải cấu hình
   const [loading, setLoading] = useState(true);
   // Đang lưu cấu hình
@@ -38,6 +40,7 @@ export default function SettingsPage() {
       const data = await res.json();
       if (res.ok) {
         setSheetUrl(data.sheetUrl || "");
+        setServiceAccountEmail(data.serviceAccountEmail || "");
       } else {
         throw new Error(data.error || "Không thể tải cấu hình");
       }
@@ -122,7 +125,11 @@ export default function SettingsPage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      setShowPasswordForm(false);
+      // Đóng form sau 1.5 giây để người dùng kịp đọc thông báo
+      setTimeout(() => {
+        setShowPasswordForm(false);
+        setPasswordMessage({ type: "", text: "" });
+      }, 1500);
     } catch (err) {
       setPasswordMessage({ type: "error", text: err.message });
     } finally {
@@ -390,7 +397,7 @@ export default function SettingsPage() {
               <li>
                 Thêm email của Google Service Account bên dưới với quyền <strong className="text-brand-primary font-bold">Người chỉnh sửa (Editor)</strong>:
                 <div className="mt-1.5 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-emerald-700 select-all font-mono break-all text-xs font-bold shadow-2xs">
-                  {process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "Email Service Account chưa được cài đặt trong .env.local"}
+                  {serviceAccountEmail || "Email Service Account chưa được cài đặt trong .env.local"}
                 </div>
               </li>
               <li>
